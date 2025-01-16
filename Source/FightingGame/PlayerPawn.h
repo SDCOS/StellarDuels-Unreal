@@ -10,6 +10,9 @@
 #include "GameFramework/Character.h"
 #include "InputMappingContext.h"
 #include "InputAction.h"
+#include "InputActionValue.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedInputComponent.h"
 
 #include "PlayerPawn.generated.h"
 
@@ -48,6 +51,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<UInputAction> IA_Jump;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> AD_Movement;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* JumpFromStand;
+
 
 
 public:	
@@ -59,5 +68,6 @@ public:
 
 	void StartJump();
 	void StopJump();
+	void Move_Sideways(const FInputActionValue& Value);
 
 };

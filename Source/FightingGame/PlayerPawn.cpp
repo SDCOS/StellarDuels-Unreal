@@ -13,6 +13,10 @@
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
 
+//FIXME: Make individual input components for WASD instead of combining them. Run the standing animation in BeginPlay.
+// Add animation logic in the movement functions (including which one to play when going diagonal)
+// Fix the jumping animation
+
 // Sets default values
 APlayerPawn::APlayerPawn()
 {
@@ -30,20 +34,20 @@ APlayerPawn::APlayerPawn()
 	
 	GetCharacterMovement()->UpdatedComponent = RootComponent;
 	GetCharacterMovement()->GravityScale = 1.5f; // Gravity Control
-	GetCharacterMovement()->MaxWalkSpeed = 600.0f; // Set a reasonable walking speed
-	GetCharacterMovement()->JumpZVelocity = 600.f; // Set jump velocity
+	GetCharacterMovement()->MaxWalkSpeed = 600.0f; // walking speed
+	GetCharacterMovement()->JumpZVelocity = 600.f; // jump velocity
 	GetCharacterMovement()->AirControl = 0.2f;     // Control in the air
 	PlayerMesh->SetSimulatePhysics(false); // Disable physics simulation for controlled movement
 	PlayerMesh->SetEnableGravity(true);   // Enable gravity
 
-	// Set the Skeletal Mesh using its path in the content browser (right click asset then click "copy reference"
+	// Set the Skeletal Mesh using its path in the content browser (right click asset then click "copy reference")
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("/Script/Engine.SkeletalMesh'/Game/AnimStarterPack/UE4_Mannequin/Mesh/SK_Mannequin.SK_Mannequin'"));
 	if (MeshAsset.Succeeded())
 	{
 		PlayerMesh->SetSkeletalMesh(MeshAsset.Object);
 	}
 
-	//CAMERA OFFSET / SPRING ARM
+	// Camera offset from character
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArmComponent->SetupAttachment(PlayerMesh); // Attach to the cube
 	SpringArmComponent->TargetArmLength = 380.0f; // Distance from the cube
@@ -61,12 +65,20 @@ APlayerPawn::APlayerPawn()
 		IMC_Default = IMC_Finder.Object;
 	}
 
-	// Load the Input Action
-	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Jump.IA_Jump'"));
-	if (IA_Finder.Succeeded())
+	// Load the input actions
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Jump_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Jump.IA_Jump'"));
+	if (IA_Jump_Finder.Succeeded())
 	{
-		IA_Jump = IA_Finder.Object;
+		IA_Jump = IA_Jump_Finder.Object;
 	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> AD_Movement_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/WASD_movement.WASD_movement'"));
+	if (AD_Movement_Finder.Succeeded())
+	{
+		AD_Movement = AD_Movement_Finder.Object;
+	}
+
+	//Load JumpFromStand
+	JumpFromStand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Jump_From_Stand.Jump_From_Stand'"));
 
 
 }
@@ -85,6 +97,8 @@ void APlayerPawn::BeginPlay()
 	//for inputs
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetWorld()->GetFirstLocalPlayerFromController());
 	Subsystem->AddMappingContext(IMC_Default, 0);
+
+	//start stand animation here
 	
 }
 
@@ -106,16 +120,35 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		// Bind jumping actions
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &APlayerPawn::StartJump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &APlayerPawn::StopJump);
+		EnhancedInput->BindAction(AD_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::Move_Sideways);
 	}
 
 }
 
 void APlayerPawn::StartJump()
 {
-	Jump(); // Call the built-in Jump() function
+	PlayerMesh->PlayAnimation(JumpFromStand, false); // this setup does not work as intended :o - also there should be some logic that chooses if we should play JumpFromStand or some other jumping animation
+	Jump();
 }
 
 void APlayerPawn::StopJump()
 {
 	StopJumping(); // Call the built-in StopJumping() function
+}
+
+void APlayerPawn::Move_Sideways(const FInputActionValue& Value)
+{
+	// Ensure Value is a Vector2D
+	FVector2D MovementVector = Value.Get<FVector2D>();
+
+	if (Controller)
+	{
+		// Get the character's forward and right vectors
+		const FRotator ControlRotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, ControlRotation.Yaw, 0);
+
+		// Right/Left direction
+		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		AddMovementInput(RightDirection, MovementVector.X);
+	}
 }
