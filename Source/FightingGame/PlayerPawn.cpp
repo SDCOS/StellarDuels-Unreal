@@ -18,6 +18,7 @@
 // Sets default values
 APlayerPawn::APlayerPawn()
 {
+
  	// Set this pawn to call Tick() every frame.  Is important for frame-by-frame operations (like calculating fps)
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -26,7 +27,7 @@ APlayerPawn::APlayerPawn()
 	PlayerMesh->SetupAttachment(RootComponent);
 
 	FRotator InitialRotation(0.f, -90.f, 0.f);
-	FVector InitialLocation(0, 0, -60);
+	FVector InitialLocation(0, 0, -82);
 	PlayerMesh->SetRelativeLocation(InitialLocation);
 	PlayerMesh->SetRelativeRotation(InitialRotation);
 	
