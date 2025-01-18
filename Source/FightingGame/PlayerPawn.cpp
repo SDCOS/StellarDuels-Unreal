@@ -13,9 +13,7 @@
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
 
-//FIXME: Make individual input components for WASD instead of combining them. Run the standing animation in BeginPlay.
-// Add animation logic in the movement functions (including which one to play when going diagonal)
-// Fix the jumping animation
+//FIXME: Jump animation is wack, also add running animations
 
 // Sets default values
 APlayerPawn::APlayerPawn()
@@ -34,9 +32,9 @@ APlayerPawn::APlayerPawn()
 	
 	GetCharacterMovement()->UpdatedComponent = RootComponent;
 	GetCharacterMovement()->GravityScale = 1.5f; // Gravity Control
-	GetCharacterMovement()->MaxWalkSpeed = 600.0f; // walking speed
-	GetCharacterMovement()->JumpZVelocity = 600.f; // jump velocity
-	GetCharacterMovement()->AirControl = 0.2f;     // Control in the air
+	GetCharacterMovement()->MaxWalkSpeed = 1000.0f; // walking speed
+	GetCharacterMovement()->JumpZVelocity = 1000.f; // jump velocity
+	GetCharacterMovement()->AirControl = 0.6f;     // Control in the air
 	PlayerMesh->SetSimulatePhysics(false); // Disable physics simulation for controlled movement
 	PlayerMesh->SetEnableGravity(true);   // Enable gravity
 
@@ -71,14 +69,40 @@ APlayerPawn::APlayerPawn()
 	{
 		IA_Jump = IA_Jump_Finder.Object;
 	}
-	static ConstructorHelpers::FObjectFinder<UInputAction> AD_Movement_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/WASD_movement.WASD_movement'"));
-	if (AD_Movement_Finder.Succeeded())
+	static ConstructorHelpers::FObjectFinder<UInputAction> Forward_Movement_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/Move_Forward.Move_Forward'"));
+	if (Forward_Movement_Finder.Succeeded())
 	{
-		AD_Movement = AD_Movement_Finder.Object;
+		Forward_Movement = Forward_Movement_Finder.Object;
+	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> Backward_Movement_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/Move_Backward.Move_Backward'"));
+	if (Backward_Movement_Finder.Succeeded())
+	{
+		Backward_Movement = Backward_Movement_Finder.Object;
+	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> Left_Movement_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/Move_Left.Move_Left'"));
+	if (Left_Movement_Finder.Succeeded())
+	{
+		Left_Movement = Left_Movement_Finder.Object;
+	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> Right_Movement_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/Move_Right.Move_Right'"));
+	if (Right_Movement_Finder.Succeeded())
+	{
+		Right_Movement = Right_Movement_Finder.Object;
+	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Turn_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Turn.IA_Turn'"));
+	if (IA_Turn_Finder.Succeeded())
+	{
+		IA_Turn = IA_Turn_Finder.Object;
+	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_LookUp_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Pan_Up.IA_Pan_Up'"));
+	if (IA_LookUp_Finder.Succeeded())
+	{
+		IA_LookUp = IA_LookUp_Finder.Object;
 	}
 
-	//Load JumpFromStand
+	//Load animations
 	JumpFromStand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Jump_From_Stand.Jump_From_Stand'"));
+	Stand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Equip_Rifle_Standing.Equip_Rifle_Standing'"));
 
 
 }
@@ -99,7 +123,7 @@ void APlayerPawn::BeginPlay()
 	Subsystem->AddMappingContext(IMC_Default, 0);
 
 	//start stand animation here
-	
+	PlayerMesh->PlayAnimation(Stand, false);
 }
 
 // Called every frame
@@ -120,7 +144,12 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		// Bind jumping actions
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &APlayerPawn::StartJump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &APlayerPawn::StopJump);
-		EnhancedInput->BindAction(AD_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::Move_Sideways);
+		EnhancedInput->BindAction(Forward_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveForward);
+		EnhancedInput->BindAction(Backward_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveBackward);
+		EnhancedInput->BindAction(Left_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveLeft);
+		EnhancedInput->BindAction(Right_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveRight);
+		EnhancedInput->BindAction(IA_Turn, ETriggerEvent::Triggered, this, &APlayerPawn::Turn);
+		EnhancedInput->BindAction(IA_LookUp, ETriggerEvent::Triggered, this, &APlayerPawn::LookUp);
 	}
 
 }
@@ -136,19 +165,52 @@ void APlayerPawn::StopJump()
 	StopJumping(); // Call the built-in StopJumping() function
 }
 
-void APlayerPawn::Move_Sideways(const FInputActionValue& Value)
+void APlayerPawn::MoveForward()
 {
-	// Ensure Value is a Vector2D
-	FVector2D MovementVector = Value.Get<FVector2D>();
+	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-	if (Controller)
-	{
-		// Get the character's forward and right vectors
-		const FRotator ControlRotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, ControlRotation.Yaw, 0);
+	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	AddMovementInput(Direction, 1); //2nd param is a speed multiplier from -1 to 1
+}
 
-		// Right/Left direction
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		AddMovementInput(RightDirection, MovementVector.X);
-	}
+void APlayerPawn::MoveBackward()
+{
+	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	AddMovementInput(Direction, -1);
+}
+
+void APlayerPawn::MoveLeft()
+{
+	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	// Use the Y-axis for left/right movement
+	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	AddMovementInput(Direction, -1);
+}
+
+void APlayerPawn::MoveRight()
+{
+	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	// Use the Y-axis for left/right movement
+	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	AddMovementInput(Direction, 1);
+}
+
+void APlayerPawn::Turn(const FInputActionValue& Value)
+{
+	float TurnValue = Value.Get<float>();
+	AddControllerYawInput(TurnValue/3);
+}
+
+void APlayerPawn::LookUp(const FInputActionValue& Value)
+{
+	float LookUpValue = Value.Get<float>();
+	AddControllerPitchInput(-LookUpValue/3);
 }

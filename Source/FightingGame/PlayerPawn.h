@@ -52,10 +52,30 @@ protected:
 	TObjectPtr<UInputAction> IA_Jump;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	TObjectPtr<UInputAction> AD_Movement;
+	TObjectPtr<UInputAction> Forward_Movement;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> Backward_Movement;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> Left_Movement;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> Right_Movement;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	class UInputAction* IA_Turn;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	class UInputAction* IA_LookUp;
+
+
+	//animations
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* JumpFromStand;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* Stand;
 
 
 
@@ -68,6 +88,11 @@ public:
 
 	void StartJump();
 	void StopJump();
-	void Move_Sideways(const FInputActionValue& Value);
+	void MoveLeft();
+	void MoveRight();
+	void MoveForward();
+	void MoveBackward();
+	void LookUp(const FInputActionValue& Value);
+	void Turn(const FInputActionValue& Value);
 
 };
