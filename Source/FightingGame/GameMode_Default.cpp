@@ -10,6 +10,8 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
+//FIXME: The player on the server bugs out whenever someone joins
+
 AGameMode_Default::AGameMode_Default()
 {
     // Set default classes (assign your custom ones here if needed)

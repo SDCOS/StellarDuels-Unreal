@@ -18,6 +18,7 @@
 // Sets default values
 APlayerPawn::APlayerPawn()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Pawn Constructor"));
 
  	// Set this pawn to call Tick() every frame.  Is important for frame-by-frame operations (like calculating fps)
 	PrimaryActorTick.bCanEverTick = true;
@@ -62,6 +63,9 @@ APlayerPawn::APlayerPawn()
 	if (IMC_Finder.Succeeded())
 	{
 		IMC_Default = IMC_Finder.Object;
+	}
+	else {
+		UE_LOG(LogTemp, Error, TEXT("IMC_default not found"));
 	}
 
 	// Load the input actions
@@ -117,6 +121,9 @@ void APlayerPawn::BeginPlay()
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
 		PC->Possess(this);
+		PC->SetInputMode(FInputModeGameOnly()); // this is super important! Allows people to move when they create a server
+		PC->bShowMouseCursor = false;
+		UE_LOG(LogTemp, Warning, TEXT("Player Possessed"));
 	}
 
 	//for inputs
@@ -139,9 +146,12 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	UE_LOG(LogTemp, Warning, TEXT("Setup Input Called"));
+
 	// Cast to EnhancedInputComponent
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Binding Actions"));
 		// Bind jumping actions
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &APlayerPawn::StartJump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &APlayerPawn::StopJump);
@@ -157,6 +167,7 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 void APlayerPawn::StartJump()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Jump"));
 	PlayerMesh->PlayAnimation(JumpFromStand, false); // this setup does not work as intended :o - also there should be some logic that chooses if we should play JumpFromStand or some other jumping animation
 	Jump();
 }
@@ -168,6 +179,7 @@ void APlayerPawn::StopJump()
 
 void APlayerPawn::MoveForward()
 {
+	UE_LOG(LogTemp, Warning, TEXT("move forward"));
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -177,6 +189,7 @@ void APlayerPawn::MoveForward()
 
 void APlayerPawn::MoveBackward()
 {
+	UE_LOG(LogTemp, Warning, TEXT("move backward"));
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -186,6 +199,7 @@ void APlayerPawn::MoveBackward()
 
 void APlayerPawn::MoveLeft()
 {
+	UE_LOG(LogTemp, Warning, TEXT("left"));
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -196,6 +210,7 @@ void APlayerPawn::MoveLeft()
 
 void APlayerPawn::MoveRight()
 {
+	UE_LOG(LogTemp, Warning, TEXT("right"));
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -206,12 +221,14 @@ void APlayerPawn::MoveRight()
 
 void APlayerPawn::Turn(const FInputActionValue& Value)
 {
+	UE_LOG(LogTemp, Warning, TEXT("mousex"));
 	float TurnValue = Value.Get<float>();
 	AddControllerYawInput(TurnValue/3);
 }
 
 void APlayerPawn::LookUp(const FInputActionValue& Value)
 {
+	UE_LOG(LogTemp, Warning, TEXT("mousey"));
 	float LookUpValue = Value.Get<float>();
 	AddControllerPitchInput(-LookUpValue/3);
 }
