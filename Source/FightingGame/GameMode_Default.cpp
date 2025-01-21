@@ -24,36 +24,35 @@ void AGameMode_Default::BeginPlay()
     Super::BeginPlay();
 }
 
-void AGameMode_Default::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
-{
-    Super::HandleStartingNewPlayer_Implementation(NewPlayer);
+void AGameMode_Default::PostLogin(APlayerController* NewPlayer) {
+    Super::PostLogin(NewPlayer);
+    APlayerController* ServerPC = Cast<APlayerController>(GetWorld()->GetFirstPlayerController());
 
-    // Example: Custom logic for initializing a new player
-    if (NewPlayer && NewPlayer->GetPawn() == nullptr)
+    //for debugging *****
+    if (ServerPC)
     {
-        AActor* SpawnLocation = ChoosePlayerStart(NewPlayer);
-        if (SpawnLocation)
+        APawn* ControlledPawn = ServerPC->GetPawn();
+        if (ControlledPawn)
         {
-            APawn* NewPawn = GetWorld()->SpawnActor<APawn>(DefaultPawnClass, SpawnLocation->GetActorLocation(), SpawnLocation->GetActorRotation());
-            if (NewPawn)
-            {
-                NewPlayer->Possess(NewPawn);
-                UE_LOG(LogTemp, Log, TEXT("New player spawned and possessed a pawn."));
-            }
+            UE_LOG(LogTemp, Warning, TEXT("Server PlayerController is still possessing: %s"), *ControlledPawn->GetName());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Server PlayerController has lost possession of its pawn!"));
         }
     }
-}
-
-AActor* AGameMode_Default::ChoosePlayerStart_Implementation(AController* PlayerController)
-{
-    // Example: Find a random PlayerStart actor
-    TArray<AActor*> PlayerStarts;
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
-
-    if (PlayerStarts.Num() > 0)
+    else
     {
-        return PlayerStarts[FMath::RandRange(0, PlayerStarts.Num() - 1)];
+        UE_LOG(LogTemp, Error, TEXT("Server PlayerController is null!"));
     }
+    // *********
 
-    return Super::ChoosePlayerStart_Implementation(PlayerController);
+    /*
+    if (!ServerPC->GetPawn())
+    {
+        ServerPC->Possess(PlayerPawn); // Replace with the reference to your server-side pawn
+        UE_LOG(LogTemp, Warning, TEXT("Repossessed server-side pawn"));
+    }*/ //fieub reua hgrb  WORK ON THIS FUTURE FLYNN - -  - - - -  - - -
 }
+
+

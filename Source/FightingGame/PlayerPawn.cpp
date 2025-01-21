@@ -18,6 +18,7 @@
 // Sets default values
 APlayerPawn::APlayerPawn()
 {
+
 	UE_LOG(LogTemp, Warning, TEXT("Pawn Constructor"));
 
  	// Set this pawn to call Tick() every frame.  Is important for frame-by-frame operations (like calculating fps)
@@ -108,7 +109,6 @@ APlayerPawn::APlayerPawn()
 	//Load animations
 	JumpFromStand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Jump_From_Stand.Jump_From_Stand'"));
 	Stand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Equip_Rifle_Standing.Equip_Rifle_Standing'"));
-
 
 }
 
