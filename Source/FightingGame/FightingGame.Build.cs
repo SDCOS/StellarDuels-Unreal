@@ -12,6 +12,8 @@ public class FightingGame : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[] {"UMG" });
 
+        PrivateDependencyModuleNames.AddRange(new string[] { "OnlineSubsystem", "OnlineSubsystemUtils", "OnlineSubsystemNull", "OnlineSubsystemSteam" });
+
         // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 

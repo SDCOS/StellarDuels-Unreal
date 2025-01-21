@@ -22,12 +22,9 @@ public:
     AGameMode_Default();
 
 protected:
-    // Override to handle player initialization
-    virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
-
-    // Override to control where players spawn
-    virtual AActor* ChoosePlayerStart_Implementation(AController* PlayerController) override;
 
     // Function to initialize custom game state
     virtual void BeginPlay() override;
+    virtual void PostLogin(APlayerController* NewPlayer);
+
 };
