@@ -78,7 +78,6 @@ protected:
 	UAnimSequence* Stand;
 
 
-
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -95,4 +94,6 @@ public:
 	void LookUp(const FInputActionValue& Value);
 	void Turn(const FInputActionValue& Value);
 
+	UFUNCTION(BlueprintCallable)
+	void EnterTutorial();
 };
