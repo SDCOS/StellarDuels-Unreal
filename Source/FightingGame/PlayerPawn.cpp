@@ -236,6 +236,7 @@ void APlayerPawn::LookUp(const FInputActionValue& Value)
 
 void APlayerPawn::EnterTutorial()
 {
-	FName LevelName = TEXT("TutorialMap"); // Replace with your actual map name
+	//Open the tutorial level
+	FName LevelName = TEXT("TutorialMap");
 	UGameplayStatics::OpenLevel(GetWorld(), LevelName);
 }
