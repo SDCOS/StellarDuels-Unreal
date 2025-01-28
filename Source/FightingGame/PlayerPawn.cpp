@@ -10,6 +10,7 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Kismet/GameplayStatics.h"
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
 
@@ -231,4 +232,11 @@ void APlayerPawn::LookUp(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Warning, TEXT("mousey"));
 	float LookUpValue = Value.Get<float>();
 	AddControllerPitchInput(-LookUpValue/3);
+}
+
+void APlayerPawn::EnterTutorial()
+{
+	//Open the tutorial level
+	FName LevelName = TEXT("TutorialMap");
+	UGameplayStatics::OpenLevel(GetWorld(), LevelName);
 }
