@@ -21,14 +21,20 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// Called when the actor is destroyed
+	virtual void Destroyed() override;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
+	
 	// Mesh for the agent
 	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* AgentMesh;
 
 	//Spawn the agent into the tutorial, called when BeginPlay occurs
 	void SpawnTutorialAgent();
+
+	//Check if actor is in the level
+	bool IsPlacedInLevel();
 };
