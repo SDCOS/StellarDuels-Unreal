@@ -119,6 +119,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* CrouchWalkRight;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* Sprint;
+
 	UPROPERTY(EditAnywhere, Category = "Jumping")
 	float JumpForce = 800.0f; // Jump height
 
@@ -149,6 +152,7 @@ public:
 	void StartSprint();
 	void StopSprint();
 	void StopMoving();
+	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
 	bool bIsCrouching = false;
 	bool bIsMoving = false;

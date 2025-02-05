@@ -132,6 +132,7 @@ APlayerPawn::APlayerPawn()
 	CrouchWalkBackward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Bwd_Rifle_Ironsights.Crouch_Walk_Bwd_Rifle_Ironsights'"));
 	CrouchWalkLeft = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Lt_Rifle_Ironsights.Crouch_Walk_Lt_Rifle_Ironsights'"));
 	CrouchWalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Rt_Rifle_Ironsights.Crouch_Walk_Rt_Rifle_Ironsights'"));
+	Sprint = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Sprint_Fwd_Rifle.Sprint_Fwd_Rifle'"));
 }
 
 // Called when the game starts or when spawned
@@ -197,11 +198,16 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 void APlayerPawn::StartSprint()
 {
-	if (!bIsSprinting)
+	if (!bIsSprinting && bIsMoving)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Started Sprinting"));
 		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed; // Increase speed
 		bIsSprinting = true;
+
+		if (Sprint)
+		{
+			PlayerMesh->PlayAnimation(Sprint, true);
+		}
 	}
 }
 
@@ -212,6 +218,12 @@ void APlayerPawn::StopSprint()
 		UE_LOG(LogTemp, Warning, TEXT("Stopped Sprinting"));
 		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; // Reset speed
 		bIsSprinting = false;
+
+		if (WalkForward)
+		{
+			if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
+			else PlayerMesh->PlayAnimation(Idle, true);
+		}
 	}
 }
 
@@ -224,7 +236,6 @@ void APlayerPawn::StartJump()
 		LaunchCharacter(FVector(0, 0, JumpForce), false, true);
 		bIsJumping = true;
 		bCanDoubleJump = true; // Enable double jump
-
 		// Play correct animation
 		if (bIsMoving && WalkForward)
 		{
@@ -232,21 +243,37 @@ void APlayerPawn::StartJump()
 		}
 		else if (JumpFromStand)
 		{
-			PlayerMesh->PlayAnimation(JumpFromStand, false); // Play standing jump
+			PlayerMesh->PlayAnimation(JumpFromStand, false);
 		}
 	}
 	else if (bCanDoubleJump) // Double Jump
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Double Jump!"));
-		LaunchCharacter(FVector(0, 0, JumpForce * 0.8f), false, true);
-		bCanDoubleJump = false; // Only allow one mid-air jump
-
+		LaunchCharacter(FVector(0, 0, JumpForce * 1.0f), false, true);
 		if (JumpFromStand)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Action jump perform"));
 			PlayerMesh->PlayAnimation(JumpFromStand, false);
 		}
+		bCanDoubleJump = false; // Only allow one mid-air jump
 	}
 }
+
+//void APlayerPawn::Landed(const FHitResult& Hit)
+//{
+//	//Super::Landed(Hit);
+//
+//	UE_LOG(LogTemp, Warning, TEXT("Landed! Reset jump."));
+//	bIsJumping = false;
+//	bCanDoubleJump = true; // Restore double jump ability
+//}
+
+void APlayerPawn::StopJump() {
+	bIsJumping = false;
+	bCanDoubleJump = true; // Restore double jump ability
+	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
+}
+
 
 void APlayerPawn::StartCrouch()
 {
@@ -291,13 +318,6 @@ void APlayerPawn::StopCrouch()
 		PlayerMesh->PlayAnimation(CrouchToStand, false);
 		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
 	}
-}
-
-void APlayerPawn::StopJump()
-{
-	bIsJumping = false;
-	bCanDoubleJump = true;
-	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
 }
 
 void APlayerPawn::MoveForward()
