@@ -104,6 +104,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* WalkRight;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchWalkForward;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -122,8 +125,12 @@ public:
 	void StartCrouch();
 	void StopCrouch();
 	void StopMoving();
+	void PlayCrouchIdle();
 	bool bIsCrouching = false;
 	bool bIsMoving = false;
+	float CrouchHoldThreshold = 0.2f; // Time (seconds) to determine tap vs hold
+	FTimerHandle CrouchTimerHandle;
+	float CrouchStartTime = 0.0f; // Time when crouch button was pressed
 
 	UFUNCTION(BlueprintCallable)
 	void EnterTutorial();

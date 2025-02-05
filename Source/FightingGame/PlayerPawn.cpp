@@ -36,7 +36,7 @@ APlayerPawn::APlayerPawn()
 	
 	GetCharacterMovement()->UpdatedComponent = RootComponent;
 	GetCharacterMovement()->GravityScale = 1.5f; // Gravity Control
-	GetCharacterMovement()->MaxWalkSpeed = 1000.0f; // walking speed
+	GetCharacterMovement()->MaxWalkSpeed = 500.0f; // walking speed
 	GetCharacterMovement()->JumpZVelocity = 1000.f; // jump velocity
 	GetCharacterMovement()->AirControl = 0.6f;     // Control in the air
 	PlayerMesh->SetSimulatePhysics(false); // Disable physics simulation for controlled movement
@@ -123,6 +123,7 @@ APlayerPawn::APlayerPawn()
 	WalkBackward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Bwd_Rifle_Ironsights.Walk_Bwd_Rifle_Ironsights'"));
 	WalkLeft = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Lt_Rifle_Ironsights.Walk_Lt_Rifle_Ironsights'"));
 	WalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Rt_Rifle_Ironsights.Walk_Rt_Rifle_Ironsights'"));
+	CrouchWalkForward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Fwd_Rifle_Ironsights.Crouch_Walk_Fwd_Rifle_Ironsights'"));
 }
 
 // Called when the game starts or when spawned
@@ -193,33 +194,46 @@ void APlayerPawn::StartJump()
 
 void APlayerPawn::StartCrouch()
 {
+	CrouchStartTime = GetWorld()->GetTimeSeconds();
 	if (!bIsCrouching) {
 		UE_LOG(LogTemp, Warning, TEXT("Crouching"));
+		GetCharacterMovement()->MaxWalkSpeed = 200.0f; //Reduce the speed
 		bIsCrouching = true;
 		if (StandtoCrouch)
 		{
 			PlayerMesh->PlayAnimation(StandtoCrouch, false);
+			if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, false);
 		}
 
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
-			{
-				if (CrouchIdle)
-				{
-					PlayerMesh->PlayAnimation(CrouchIdle, true);
-				}
-			}, StandtoCrouch->GetPlayLength(), false);
+		GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &APlayerPawn::PlayCrouchIdle, StandtoCrouch->GetPlayLength(), false);
+	}
+}
+
+void APlayerPawn::PlayCrouchIdle()
+{
+	if (bIsCrouching && CrouchIdle)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Crouch Idle"));
+		if (!bIsMoving) {
+			PlayerMesh->PlayAnimation(CrouchIdle, true);
+		}
+		else {
+			PlayerMesh->PlayAnimation(CrouchWalkForward, false);
+		}
 	}
 }
 
 void APlayerPawn::StopCrouch()
 {
+	float HeldTime = GetWorld()->GetTimeSeconds() - CrouchStartTime;
+	GetWorld()->GetTimerManager().ClearTimer(CrouchTimerHandle);
 	if (bIsCrouching)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Standing up"));
-
+		GetCharacterMovement()->MaxWalkSpeed = 500.0f;
 		bIsCrouching = false;
 		PlayerMesh->PlayAnimation(CrouchToStand, false);
+		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
 	}
 }
 
@@ -236,7 +250,12 @@ void APlayerPawn::MoveForward()
 		bIsMoving = true;
 		if (WalkForward)
 		{
-			PlayerMesh->PlayAnimation(WalkForward, true);
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(WalkForward, true);
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+			}
 		}
 	}
 	const FRotator Rotation = Controller->GetControlRotation();
