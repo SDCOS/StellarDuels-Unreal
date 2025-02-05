@@ -76,6 +76,11 @@ APlayerPawn::APlayerPawn()
 	{
 		IA_Jump = IA_Jump_Finder.Object;
 	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Sprint_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Sprint.IA_Sprint'"));
+	if (IA_Sprint_Finder.Succeeded())
+	{
+		IA_Sprint = IA_Sprint_Finder.Object;
+	}
 	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Crouch_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Crouch.IA_Crouch'"));
 	if (IA_Jump_Finder.Succeeded())
 	{
@@ -184,9 +189,32 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		EnhancedInput->BindAction(IA_LookUp, ETriggerEvent::Triggered, this, &APlayerPawn::LookUp);
 		EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Triggered, this, &APlayerPawn::StartCrouch);
 		EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Completed, this, &APlayerPawn::StopCrouch);
+		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Triggered, this, &APlayerPawn::StartSprint);
+		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &APlayerPawn::StopSprint);
 	}
 
 }
+
+void APlayerPawn::StartSprint()
+{
+	if (!bIsSprinting)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Started Sprinting"));
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed; // Increase speed
+		bIsSprinting = true;
+	}
+}
+
+void APlayerPawn::StopSprint()
+{
+	if (bIsSprinting)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stopped Sprinting"));
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; // Reset speed
+		bIsSprinting = false;
+	}
+}
+
 
 void APlayerPawn::StartJump()
 {

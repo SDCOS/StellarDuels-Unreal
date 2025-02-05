@@ -52,6 +52,9 @@ protected:
 	TObjectPtr<UInputAction> IA_Jump;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> IA_Sprint;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<UInputAction> IA_Crouch;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -119,6 +122,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Jumping")
 	float JumpForce = 800.0f; // Jump height
 
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float WalkSpeed = 500.0f; // Default walking speed
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float SprintSpeed = 1000.0f; // Sprinting speed
+
 
 public:	
 	// Called every frame
@@ -137,6 +146,8 @@ public:
 	void Turn(const FInputActionValue& Value);
 	void StartCrouch();
 	void StopCrouch();
+	void StartSprint();
+	void StopSprint();
 	void StopMoving();
 	void PlayCrouchIdle();
 	bool bIsCrouching = false;
@@ -146,6 +157,7 @@ public:
 	float CrouchStartTime = 0.0f; // Time when crouch button was pressed
 	bool bIsJumping = false;
 	bool bCanDoubleJump = true;
+	bool bIsSprinting = false; // Track if the player is sprinting
 
 	UFUNCTION(BlueprintCallable)
 	void EnterTutorial();
