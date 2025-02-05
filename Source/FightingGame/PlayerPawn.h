@@ -107,6 +107,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* CrouchWalkForward;
 
+	UPROPERTY(EditAnywhere, Category = "Jumping")
+	float JumpForce = 800.0f; // Jump height
+
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -131,6 +135,8 @@ public:
 	float CrouchHoldThreshold = 0.2f; // Time (seconds) to determine tap vs hold
 	FTimerHandle CrouchTimerHandle;
 	float CrouchStartTime = 0.0f; // Time when crouch button was pressed
+	bool bIsJumping = false;
+	bool bCanDoubleJump = true;
 
 	UFUNCTION(BlueprintCallable)
 	void EnterTutorial();

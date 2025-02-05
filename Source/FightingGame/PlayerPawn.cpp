@@ -187,9 +187,34 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 void APlayerPawn::StartJump()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Jump"));
-	PlayerMesh->PlayAnimation(JumpFromStand, false); // this setup does not work as intended :o - also there should be some logic that chooses if we should play JumpFromStand or some other jumping animation
-	Jump();
+	if (!bIsJumping) // First jump
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Jumping from ground"));
+		LaunchCharacter(FVector(0, 0, JumpForce), false, true);
+		bIsJumping = true;
+		bCanDoubleJump = true; // Enable double jump
+
+		// Play correct animation
+		if (bIsMoving && WalkForward)
+		{
+			PlayerMesh->PlayAnimation(WalkForward, false); // Play jump while running
+		}
+		else if (JumpFromStand)
+		{
+			PlayerMesh->PlayAnimation(JumpFromStand, false); // Play standing jump
+		}
+	}
+	else if (bCanDoubleJump) // Double Jump
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Double Jump!"));
+		LaunchCharacter(FVector(0, 0, JumpForce * 0.8f), false, true);
+		bCanDoubleJump = false; // Only allow one mid-air jump
+
+		if (JumpFromStand)
+		{
+			PlayerMesh->PlayAnimation(JumpFromStand, false);
+		}
+	}
 }
 
 void APlayerPawn::StartCrouch()
@@ -239,7 +264,9 @@ void APlayerPawn::StopCrouch()
 
 void APlayerPawn::StopJump()
 {
-	StopJumping(); // Call the built-in StopJumping() function
+	bIsJumping = false;
+	bCanDoubleJump = true;
+	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
 }
 
 void APlayerPawn::MoveForward()
