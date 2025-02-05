@@ -120,6 +120,9 @@ APlayerPawn::APlayerPawn()
 	CrouchToStand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_to_Stand_Rifle_Hip.Crouch_to_Stand_Rifle_Hip'"));
 	CrouchIdle = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Idle_Rifle_Hip.Crouch_Idle_Rifle_Hip'"));
 	WalkForward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Fwd_Rifle_Ironsights.Walk_Fwd_Rifle_Ironsights'"));
+	WalkBackward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Bwd_Rifle_Ironsights.Walk_Bwd_Rifle_Ironsights'"));
+	WalkLeft = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Lt_Rifle_Ironsights.Walk_Lt_Rifle_Ironsights'"));
+	WalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Rt_Rifle_Ironsights.Walk_Rt_Rifle_Ironsights'"));
 }
 
 // Called when the game starts or when spawned
@@ -168,8 +171,11 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		EnhancedInput->BindAction(Forward_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveForward);
 		EnhancedInput->BindAction(Forward_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
 		EnhancedInput->BindAction(Backward_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveBackward);
+		EnhancedInput->BindAction(Backward_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
 		EnhancedInput->BindAction(Left_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveLeft);
+		EnhancedInput->BindAction(Left_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
 		EnhancedInput->BindAction(Right_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveRight);
+		EnhancedInput->BindAction(Right_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
 		EnhancedInput->BindAction(IA_Turn, ETriggerEvent::Triggered, this, &APlayerPawn::Turn);
 		EnhancedInput->BindAction(IA_LookUp, ETriggerEvent::Triggered, this, &APlayerPawn::LookUp);
 		EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Triggered, this, &APlayerPawn::StartCrouch);
@@ -225,6 +231,14 @@ void APlayerPawn::StopJump()
 void APlayerPawn::MoveForward()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move forward"));
+	if (!bIsMoving)
+	{
+		bIsMoving = true;
+		if (WalkForward)
+		{
+			PlayerMesh->PlayAnimation(WalkForward, true);
+		}
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -232,9 +246,32 @@ void APlayerPawn::MoveForward()
 	AddMovementInput(Direction, 1); //2nd param is a speed multiplier from -1 to 1
 }
 
+void APlayerPawn::StopMoving()
+{
+	if (bIsMoving)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("stopped moving"));
+
+		bIsMoving = false;
+
+		if (Stand)
+		{
+			PlayerMesh->PlayAnimation(Idle, true); // Loop idle animation
+		}
+	}
+}
+
 void APlayerPawn::MoveBackward()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move backward"));
+	if (!bIsMoving)
+	{
+		bIsMoving = true;
+		if (WalkForward)
+		{
+			PlayerMesh->PlayAnimation(WalkBackward, true);
+		}
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -245,6 +282,15 @@ void APlayerPawn::MoveBackward()
 void APlayerPawn::MoveLeft()
 {
 	UE_LOG(LogTemp, Warning, TEXT("left"));
+
+	if (!bIsMoving)
+	{
+		bIsMoving = true;
+		if (WalkForward)
+		{
+			PlayerMesh->PlayAnimation(WalkLeft, true);
+		}
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -256,6 +302,14 @@ void APlayerPawn::MoveLeft()
 void APlayerPawn::MoveRight()
 {
 	UE_LOG(LogTemp, Warning, TEXT("right"));
+	if (!bIsMoving)
+	{
+		bIsMoving = true;
+		if (WalkForward)
+		{
+			PlayerMesh->PlayAnimation(WalkRight, true);
+		}
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
