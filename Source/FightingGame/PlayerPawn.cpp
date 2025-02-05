@@ -36,7 +36,7 @@ APlayerPawn::APlayerPawn()
 	
 	GetCharacterMovement()->UpdatedComponent = RootComponent;
 	GetCharacterMovement()->GravityScale = 1.5f; // Gravity Control
-	GetCharacterMovement()->MaxWalkSpeed = 1000.0f; // walking speed
+	GetCharacterMovement()->MaxWalkSpeed = 500.0f; // walking speed
 	GetCharacterMovement()->JumpZVelocity = 1000.f; // jump velocity
 	GetCharacterMovement()->AirControl = 0.6f;     // Control in the air
 	PlayerMesh->SetSimulatePhysics(false); // Disable physics simulation for controlled movement
@@ -76,6 +76,16 @@ APlayerPawn::APlayerPawn()
 	{
 		IA_Jump = IA_Jump_Finder.Object;
 	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Sprint_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Sprint.IA_Sprint'"));
+	if (IA_Sprint_Finder.Succeeded())
+	{
+		IA_Sprint = IA_Sprint_Finder.Object;
+	}
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Crouch_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Crouch.IA_Crouch'"));
+	if (IA_Jump_Finder.Succeeded())
+	{
+		IA_Crouch = IA_Crouch_Finder.Object;
+	}
 	static ConstructorHelpers::FObjectFinder<UInputAction> Forward_Movement_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/Move_Forward.Move_Forward'"));
 	if (Forward_Movement_Finder.Succeeded())
 	{
@@ -110,7 +120,19 @@ APlayerPawn::APlayerPawn()
 	//Load animations
 	JumpFromStand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Jump_From_Stand.Jump_From_Stand'"));
 	Stand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Equip_Rifle_Standing.Equip_Rifle_Standing'"));
-
+	Idle = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Idle_Rifle_Hip.Idle_Rifle_Hip'"));
+	StandtoCrouch = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Stand_to_Crouch_Rifle_Hip.Stand_to_Crouch_Rifle_Hip'"));
+	CrouchToStand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_to_Stand_Rifle_Hip.Crouch_to_Stand_Rifle_Hip'"));
+	CrouchIdle = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Idle_Rifle_Hip.Crouch_Idle_Rifle_Hip'"));
+	WalkForward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Fwd_Rifle_Ironsights.Walk_Fwd_Rifle_Ironsights'"));
+	WalkBackward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Bwd_Rifle_Ironsights.Walk_Bwd_Rifle_Ironsights'"));
+	WalkLeft = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Lt_Rifle_Ironsights.Walk_Lt_Rifle_Ironsights'"));
+	WalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Rt_Rifle_Ironsights.Walk_Rt_Rifle_Ironsights'"));
+	CrouchWalkForward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Fwd_Rifle_Ironsights.Crouch_Walk_Fwd_Rifle_Ironsights'"));
+	CrouchWalkBackward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Bwd_Rifle_Ironsights.Crouch_Walk_Bwd_Rifle_Ironsights'"));
+	CrouchWalkLeft = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Lt_Rifle_Ironsights.Crouch_Walk_Lt_Rifle_Ironsights'"));
+	CrouchWalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Rt_Rifle_Ironsights.Crouch_Walk_Rt_Rifle_Ironsights'"));
+	Sprint = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Sprint_Fwd_Rifle.Sprint_Fwd_Rifle'"));
 }
 
 // Called when the game starts or when spawned
@@ -157,30 +179,163 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &APlayerPawn::StartJump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &APlayerPawn::StopJump);
 		EnhancedInput->BindAction(Forward_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveForward);
+		EnhancedInput->BindAction(Forward_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
 		EnhancedInput->BindAction(Backward_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveBackward);
+		EnhancedInput->BindAction(Backward_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
 		EnhancedInput->BindAction(Left_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveLeft);
+		EnhancedInput->BindAction(Left_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
 		EnhancedInput->BindAction(Right_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveRight);
+		EnhancedInput->BindAction(Right_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
 		EnhancedInput->BindAction(IA_Turn, ETriggerEvent::Triggered, this, &APlayerPawn::Turn);
 		EnhancedInput->BindAction(IA_LookUp, ETriggerEvent::Triggered, this, &APlayerPawn::LookUp);
+		EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Triggered, this, &APlayerPawn::StartCrouch);
+		EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Completed, this, &APlayerPawn::StopCrouch);
+		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Triggered, this, &APlayerPawn::StartSprint);
+		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &APlayerPawn::StopSprint);
 	}
 
 }
 
-void APlayerPawn::StartJump()
+void APlayerPawn::StartSprint()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Jump"));
-	PlayerMesh->PlayAnimation(JumpFromStand, false); // this setup does not work as intended :o - also there should be some logic that chooses if we should play JumpFromStand or some other jumping animation
-	Jump();
+	if (!bIsSprinting && bIsMoving)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Started Sprinting"));
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed; // Increase speed
+		bIsSprinting = true;
+
+		if (Sprint)
+		{
+			PlayerMesh->PlayAnimation(Sprint, true);
+		}
+	}
 }
 
-void APlayerPawn::StopJump()
+void APlayerPawn::StopSprint()
 {
-	StopJumping(); // Call the built-in StopJumping() function
+	if (bIsSprinting)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stopped Sprinting"));
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; // Reset speed
+		bIsSprinting = false;
+
+		if (WalkForward)
+		{
+			if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
+			else PlayerMesh->PlayAnimation(Idle, true);
+		}
+	}
+}
+
+
+void APlayerPawn::StartJump()
+{
+	if (!bIsJumping) // First jump
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Jumping from ground"));
+		LaunchCharacter(FVector(0, 0, JumpForce), false, true);
+		bIsJumping = true;
+		bCanDoubleJump = true; // Enable double jump
+		// Play correct animation
+		if (bIsMoving && WalkForward)
+		{
+			PlayerMesh->PlayAnimation(WalkForward, true);
+		}
+		else if (JumpFromStand)
+		{
+			PlayerMesh->PlayAnimation(JumpFromStand, false);
+		}
+	}
+	else if (bCanDoubleJump) // Double Jump
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Double Jump!"));
+		LaunchCharacter(FVector(0, 0, JumpForce * 1.0f), false, true);
+		if (JumpFromStand)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Action jump perform"));
+			PlayerMesh->PlayAnimation(JumpFromStand, false);
+		}
+		bCanDoubleJump = false; // Only allow one mid-air jump
+	}
+}
+
+//void APlayerPawn::Landed(const FHitResult& Hit)
+//{
+//	//Super::Landed(Hit);
+//
+//	UE_LOG(LogTemp, Warning, TEXT("Landed! Reset jump."));
+//	bIsJumping = false;
+//	bCanDoubleJump = true; // Restore double jump ability
+//}
+
+void APlayerPawn::StopJump() {
+	bIsJumping = false;
+	bCanDoubleJump = true; // Restore double jump ability
+	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
+}
+
+
+void APlayerPawn::StartCrouch()
+{
+	CrouchStartTime = GetWorld()->GetTimeSeconds();
+	if (!bIsCrouching) {
+		UE_LOG(LogTemp, Warning, TEXT("Crouching"));
+		GetCharacterMovement()->MaxWalkSpeed = 200.0f; //Reduce the speed
+		bIsCrouching = true;
+		if (StandtoCrouch)
+		{
+			PlayerMesh->PlayAnimation(StandtoCrouch, false);
+			if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+		}
+
+		GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &APlayerPawn::PlayCrouchIdle, StandtoCrouch->GetPlayLength(), false);
+	}
+}
+
+void APlayerPawn::PlayCrouchIdle()
+{
+	if (bIsCrouching && CrouchIdle)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Crouch Idle"));
+		if (!bIsMoving) {
+			PlayerMesh->PlayAnimation(CrouchIdle, false);
+		}
+		else {
+			PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+		}
+	}
+}
+
+void APlayerPawn::StopCrouch()
+{
+	float HeldTime = GetWorld()->GetTimeSeconds() - CrouchStartTime;
+	GetWorld()->GetTimerManager().ClearTimer(CrouchTimerHandle);
+	if (bIsCrouching)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Standing up"));
+		GetCharacterMovement()->MaxWalkSpeed = 500.0f;
+		bIsCrouching = false;
+		PlayerMesh->PlayAnimation(CrouchToStand, false);
+		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
+	}
 }
 
 void APlayerPawn::MoveForward()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move forward"));
+	if (!bIsMoving)
+	{
+		bIsMoving = true;
+		if (WalkForward)
+		{
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(WalkForward, true);
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+			}
+		}
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -188,9 +343,42 @@ void APlayerPawn::MoveForward()
 	AddMovementInput(Direction, 1); //2nd param is a speed multiplier from -1 to 1
 }
 
+void APlayerPawn::StopMoving()
+{
+	if (bIsMoving)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("stopped moving"));
+
+		bIsMoving = false;
+
+		if (Stand)
+		{
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(Idle, true); // Loop idle animation
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchIdle, true);
+			}
+		}
+	}
+}
+
 void APlayerPawn::MoveBackward()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move backward"));
+	if (!bIsMoving)
+	{
+		bIsMoving = true;
+		if (WalkBackward)
+		{
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(WalkBackward, true);
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchWalkBackward, true);
+			}
+		}
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -201,6 +389,20 @@ void APlayerPawn::MoveBackward()
 void APlayerPawn::MoveLeft()
 {
 	UE_LOG(LogTemp, Warning, TEXT("left"));
+
+	if (!bIsMoving)
+	{
+		bIsMoving = true;
+		if (WalkForward)
+		{
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(WalkLeft, true);
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchWalkLeft, true);
+			}
+		}
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -212,6 +414,19 @@ void APlayerPawn::MoveLeft()
 void APlayerPawn::MoveRight()
 {
 	UE_LOG(LogTemp, Warning, TEXT("right"));
+	if (!bIsMoving)
+	{
+		bIsMoving = true;
+		if (WalkForward)
+		{
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(WalkRight, true);
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchWalkRight, true);
+			}
+		}
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
