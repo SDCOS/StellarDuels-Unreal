@@ -52,6 +52,9 @@ protected:
 	TObjectPtr<UInputAction> IA_Jump;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> IA_Crouch;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<UInputAction> Forward_Movement;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -75,8 +78,22 @@ protected:
 	UAnimSequence* JumpFromStand;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* StandtoCrouch;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchIdle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* Idle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchToStand;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* Stand;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* WalkForward;
 
 public:	
 	// Called every frame
@@ -93,6 +110,11 @@ public:
 	void MoveBackward();
 	void LookUp(const FInputActionValue& Value);
 	void Turn(const FInputActionValue& Value);
+	void StartCrouch();
+	void StopCrouch();
+	void StopMoving();
+	bool bIsCrouching = false;
+	bool bIsMoving = false;
 
 	UFUNCTION(BlueprintCallable)
 	void EnterTutorial();
