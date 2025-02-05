@@ -107,6 +107,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* CrouchWalkForward;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchWalkBackward;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchWalkLeft;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchWalkRight;
+
 	UPROPERTY(EditAnywhere, Category = "Jumping")
 	float JumpForce = 800.0f; // Jump height
 

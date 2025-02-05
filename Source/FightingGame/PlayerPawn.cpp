@@ -124,6 +124,9 @@ APlayerPawn::APlayerPawn()
 	WalkLeft = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Lt_Rifle_Ironsights.Walk_Lt_Rifle_Ironsights'"));
 	WalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Walk_Rt_Rifle_Ironsights.Walk_Rt_Rifle_Ironsights'"));
 	CrouchWalkForward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Fwd_Rifle_Ironsights.Crouch_Walk_Fwd_Rifle_Ironsights'"));
+	CrouchWalkBackward = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Bwd_Rifle_Ironsights.Crouch_Walk_Bwd_Rifle_Ironsights'"));
+	CrouchWalkLeft = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Lt_Rifle_Ironsights.Crouch_Walk_Lt_Rifle_Ironsights'"));
+	CrouchWalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Rt_Rifle_Ironsights.Crouch_Walk_Rt_Rifle_Ironsights'"));
 }
 
 // Called when the game starts or when spawned
@@ -302,7 +305,12 @@ void APlayerPawn::StopMoving()
 
 		if (Stand)
 		{
-			PlayerMesh->PlayAnimation(Idle, true); // Loop idle animation
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(Idle, true); // Loop idle animation
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchIdle, true);
+			}
 		}
 	}
 }
@@ -313,9 +321,14 @@ void APlayerPawn::MoveBackward()
 	if (!bIsMoving)
 	{
 		bIsMoving = true;
-		if (WalkForward)
+		if (WalkBackward)
 		{
-			PlayerMesh->PlayAnimation(WalkBackward, true);
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(WalkBackward, true);
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchWalkBackward, true);
+			}
 		}
 	}
 	const FRotator Rotation = Controller->GetControlRotation();
@@ -334,7 +347,12 @@ void APlayerPawn::MoveLeft()
 		bIsMoving = true;
 		if (WalkForward)
 		{
-			PlayerMesh->PlayAnimation(WalkLeft, true);
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(WalkLeft, true);
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchWalkLeft, true);
+			}
 		}
 	}
 	const FRotator Rotation = Controller->GetControlRotation();
@@ -353,7 +371,12 @@ void APlayerPawn::MoveRight()
 		bIsMoving = true;
 		if (WalkForward)
 		{
-			PlayerMesh->PlayAnimation(WalkRight, true);
+			if (!bIsCrouching) {
+				PlayerMesh->PlayAnimation(WalkRight, true);
+			}
+			else {
+				PlayerMesh->PlayAnimation(CrouchWalkRight, true);
+			}
 		}
 	}
 	const FRotator Rotation = Controller->GetControlRotation();
