@@ -197,7 +197,7 @@ void APlayerPawn::StartJump()
 		// Play correct animation
 		if (bIsMoving && WalkForward)
 		{
-			PlayerMesh->PlayAnimation(WalkForward, false); // Play jump while running
+			PlayerMesh->PlayAnimation(WalkForward, true);
 		}
 		else if (JumpFromStand)
 		{
@@ -227,7 +227,7 @@ void APlayerPawn::StartCrouch()
 		if (StandtoCrouch)
 		{
 			PlayerMesh->PlayAnimation(StandtoCrouch, false);
-			if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, false);
+			if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, true);
 		}
 
 		GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &APlayerPawn::PlayCrouchIdle, StandtoCrouch->GetPlayLength(), false);
@@ -240,10 +240,10 @@ void APlayerPawn::PlayCrouchIdle()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Crouch Idle"));
 		if (!bIsMoving) {
-			PlayerMesh->PlayAnimation(CrouchIdle, true);
+			PlayerMesh->PlayAnimation(CrouchIdle, false);
 		}
 		else {
-			PlayerMesh->PlayAnimation(CrouchWalkForward, false);
+			PlayerMesh->PlayAnimation(CrouchWalkForward, true);
 		}
 	}
 }
@@ -258,7 +258,7 @@ void APlayerPawn::StopCrouch()
 		GetCharacterMovement()->MaxWalkSpeed = 500.0f;
 		bIsCrouching = false;
 		PlayerMesh->PlayAnimation(CrouchToStand, false);
-		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
+		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
 	}
 }
 
@@ -266,7 +266,7 @@ void APlayerPawn::StopJump()
 {
 	bIsJumping = false;
 	bCanDoubleJump = true;
-	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
+	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
 }
 
 void APlayerPawn::MoveForward()
