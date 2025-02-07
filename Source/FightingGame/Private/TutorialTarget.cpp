@@ -1,13 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "../Public/TutorialAgent.h"
+#include "../Public/TutorialTarget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/StaticMeshComponent.h"
 
-//Sets default values
-ATutorialAgent::ATutorialAgent()
-{   
+// Sets default values
+ATutorialTarget::ATutorialTarget()
+{
+ 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+
     SetActorTickEnabled(true);
     SetActorEnableCollision(true);
 
@@ -21,7 +24,7 @@ ATutorialAgent::ATutorialAgent()
 
     //Create mesh for block
     AgentMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AgentMesh"));
-    RootComponent = AgentMesh;  
+    RootComponent = AgentMesh;
 
     //Set a default mesh for agent: block 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> BlockMesh(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
@@ -33,11 +36,12 @@ ATutorialAgent::ATutorialAgent()
 }
 
 // Called when the game starts or when spawned
-void ATutorialAgent::BeginPlay()
+void ATutorialTarget::BeginPlay()
 {
-    Super::BeginPlay();
+	Super::BeginPlay();
+	
 
-    UE_LOG(LogTemp, Warning, TEXT("ATutorialAgent BeginPlay Called"));
+    UE_LOG(LogTemp, Warning, TEXT("ATutorialTarget BeginPlay Called"));
 
     if (!HasAuthority())
     {
@@ -47,40 +51,17 @@ void ATutorialAgent::BeginPlay()
 
     if (IsPlacedInLevel())
     {
-        UE_LOG(LogTemp, Warning, TEXT("ATutorialAgent was manually placed in the level."));
+        UE_LOG(LogTemp, Warning, TEXT("ATutorialTarget was manually placed in the level."));
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("ATutorialAgent was spawned dynamically, spawning another agent..."));
+        UE_LOG(LogTemp, Warning, TEXT("ATutorialTarget was spawned dynamically, spawning another agent..."));
         SpawnTutorialAgent();
     }
 }
 
-// Corrected function to check if the actor was placed in the level
-bool ATutorialAgent::IsPlacedInLevel()
-{
-    bool bIsInLevel = !this->GetOwner(); // If there's no owner, it was placed in the level.
-
-    if (bIsInLevel)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Actor is placed in the level."));
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Actor was spawned dynamically."));
-    }
-
-    return bIsInLevel;
-}
-
-// Called every frame
-void ATutorialAgent::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
-void ATutorialAgent::SpawnTutorialAgent() {
+//Tutorial Target Spawning 
+void ATutorialTarget::SpawnTutorialAgent() {
     UE_LOG(LogTemp, Warning, TEXT("SpawnTutorialAgent called"));
 
     UWorld* World = GetWorld();
@@ -90,27 +71,52 @@ void ATutorialAgent::SpawnTutorialAgent() {
         return;
     }
 
-    FVector SpawnLocation = FVector(10, 10, 10);
+    FVector SpawnLocation = FVector(20, 20, 10);
     FRotator SpawnRotation = FRotator::ZeroRotator;
 
     FActorSpawnParameters SpawnParams;
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-    ATutorialAgent* SpawnedAgent = World->SpawnActor<ATutorialAgent>(ATutorialAgent::StaticClass(), SpawnLocation, SpawnRotation, SpawnParams);
+    ATutorialTarget* SpawnedTarget = World->SpawnActor<ATutorialTarget>(ATutorialTarget::StaticClass(), SpawnLocation, SpawnRotation, SpawnParams);
 
-    if (SpawnedAgent)
+    if (SpawnedTarget)
     {
-        UE_LOG(LogTemp, Warning, TEXT("ATutorialAgent manually spawned from GameMode!"));
+        UE_LOG(LogTemp, Warning, TEXT("ATutorialTarget manually spawned from GameMode!"));
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("Failed to spawn ATutorialAgent from GameMode."));
+        UE_LOG(LogTemp, Error, TEXT("Failed to spawn ATutorialTarget from GameMode."));
     }
 }
 
-void ATutorialAgent::Destroyed()
+
+// Corrected function to check if the actor was placed in the level
+bool ATutorialTarget::IsPlacedInLevel()
+{
+    bool bIsInLevel = !this->GetOwner(); // If there's no owner, it was placed in the level.
+
+    if (bIsInLevel)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Target is placed in the level."));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Target was spawned dynamically."));
+    }
+
+    return bIsInLevel;
+}
+
+// Called every frame
+void ATutorialTarget::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+void ATutorialTarget::Destroyed()
 {
     Super::Destroyed();
-    UE_LOG(LogTemp, Error, TEXT("ATutorialAgent is being destroyed before BeginPlay!"));
+    UE_LOG(LogTemp, Error, TEXT("ATutorialTarget is being destroyed before BeginPlay!"));
 }
 
