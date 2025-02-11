@@ -22,7 +22,7 @@ public:
     AGameMode_Default();
 
 protected:
-
+    APawn* InitPawn;
     // Function to initialize custom game state
     virtual void BeginPlay() override;
     virtual void PostLogin(APlayerController* NewPlayer);

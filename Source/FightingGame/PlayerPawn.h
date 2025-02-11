@@ -52,6 +52,12 @@ protected:
 	TObjectPtr<UInputAction> IA_Jump;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> IA_Sprint;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<UInputAction> IA_Crouch;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<UInputAction> Forward_Movement;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -75,7 +81,55 @@ protected:
 	UAnimSequence* JumpFromStand;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* StandtoCrouch;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchIdle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* Idle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchToStand;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* Stand;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* WalkForward;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* WalkBackward;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* WalkLeft;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* WalkRight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchWalkForward;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchWalkBackward;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchWalkLeft;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* CrouchWalkRight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* Sprint;
+
+	UPROPERTY(EditAnywhere, Category = "Jumping")
+	float JumpForce = 800.0f; // Jump height
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float WalkSpeed = 500.0f; // Default walking speed
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float SprintSpeed = 1000.0f; // Sprinting speed
 
 
 public:	
@@ -93,6 +147,21 @@ public:
 	void MoveBackward();
 	void LookUp(const FInputActionValue& Value);
 	void Turn(const FInputActionValue& Value);
+	void StartCrouch();
+	void StopCrouch();
+	void StartSprint();
+	void StopSprint();
+	void StopMoving();
+	//virtual void Landed(const FHitResult& Hit) override;
+	void PlayCrouchIdle();
+	bool bIsCrouching = false;
+	bool bIsMoving = false;
+	float CrouchHoldThreshold = 0.2f; // Time (seconds) to determine tap vs hold
+	FTimerHandle CrouchTimerHandle;
+	float CrouchStartTime = 0.0f; // Time when crouch button was pressed
+	bool bIsJumping = false;
+	bool bCanDoubleJump = true;
+	bool bIsSprinting = false; // Track if the player is sprinting
 
 	UFUNCTION(BlueprintCallable)
 	void EnterTutorial();

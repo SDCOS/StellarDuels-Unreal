@@ -22,6 +22,8 @@ AGameMode_Default::AGameMode_Default()
 void AGameMode_Default::BeginPlay()
 {
     Super::BeginPlay();
+    APlayerController* InitPC = Cast<APlayerController>(GetWorld()->GetFirstPlayerController());
+    InitPawn = InitPC->GetPawn();
 }
 
 void AGameMode_Default::PostLogin(APlayerController* NewPlayer) {
@@ -47,12 +49,12 @@ void AGameMode_Default::PostLogin(APlayerController* NewPlayer) {
     }
     // *********
 
-    /*
+    
     if (!ServerPC->GetPawn())
     {
-        ServerPC->Possess(PlayerPawn); // Replace with the reference to your server-side pawn
+        ServerPC->Possess(InitPawn); // Replace with the reference to your server-side pawn
         UE_LOG(LogTemp, Warning, TEXT("Repossessed server-side pawn"));
-    }*/ //fieub reua hgrb  WORK ON THIS FUTURE FLYNN - -  - - - -  - - -
+    } // WORK ON THIS FUTURE FLYNN - -  - - - -  - - -
 }
 
 
