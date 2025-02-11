@@ -162,7 +162,4 @@ public:
 	bool bIsJumping = false;
 	bool bCanDoubleJump = true;
 	bool bIsSprinting = false; // Track if the player is sprinting
-
-	UFUNCTION(BlueprintCallable)
-	void EnterTutorial();
 };
