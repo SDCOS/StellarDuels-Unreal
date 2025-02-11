@@ -37,4 +37,20 @@ public:
 	//Check if actor is in the level
 	bool IsPlacedInLevel();
 
+	/** Floating Movement Variables */
+	UPROPERTY(EditAnywhere, Category = "Floating Movement")
+	float MoveDistance = 100.0f; // How high it moves
+
+	UPROPERTY(EditAnywhere, Category = "Floating Movement")
+	float MoveSpeed = 2.0f; // Speed of oscillation
+
+	UPROPERTY(VisibleAnywhere, Category = "Floating Movement")
+	FVector TargetLocation;
+
+	UPROPERTY(VisibleAnywhere, Category = "Floating Movement")
+	bool bMovingToTarget = true; // Track movement direction
+
+	// Store initial location
+	FVector StartLocation;
+
 };

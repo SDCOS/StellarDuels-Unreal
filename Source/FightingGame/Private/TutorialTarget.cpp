@@ -29,7 +29,7 @@ ATutorialTarget::ATutorialTarget()
     //Set a default mesh for agent: block 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> BlockMesh(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
     if (BlockMesh.Succeeded()) {
-        UE_LOG(LogTemp, Warning, TEXT("Found block"));
+        UE_LOG(LogTemp, Warning, TEXT("Found target"));
         AgentMesh->SetStaticMesh(BlockMesh.Object);  // Set the static mesh to the cube shape
         AgentMesh->SetRelativeScale3D(FVector(1.0f));  // Adjust the scale if necessary
     }
@@ -39,8 +39,10 @@ ATutorialTarget::ATutorialTarget()
 void ATutorialTarget::BeginPlay()
 {
 	Super::BeginPlay();
-	
 
+    StartLocation = GetActorLocation();
+    TargetLocation = StartLocation + FVector(0, 0, MoveDistance);
+	
     UE_LOG(LogTemp, Warning, TEXT("ATutorialTarget BeginPlay Called"));
 
     if (!HasAuthority())
@@ -112,6 +114,12 @@ void ATutorialTarget::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+    // Calculate oscillating position
+    FVector CurrentLocation = StartLocation;
+    CurrentLocation.Z += MoveDistance * FMath::Sin(GetWorld()->GetTimeSeconds() * MoveSpeed);
+
+    // Apply new location
+    SetActorLocation(CurrentLocation);
 }
 
 void ATutorialTarget::Destroyed()
