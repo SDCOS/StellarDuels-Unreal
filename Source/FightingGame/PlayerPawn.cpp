@@ -449,9 +449,3 @@ void APlayerPawn::LookUp(const FInputActionValue& Value)
 	AddControllerPitchInput(-LookUpValue/3);
 }
 
-void APlayerPawn::EnterTutorial()
-{
-	//Open the tutorial level
-	FName LevelName = TEXT("TutorialMap");
-	UGameplayStatics::OpenLevel(GetWorld(), LevelName);
-}

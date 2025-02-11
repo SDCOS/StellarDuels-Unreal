@@ -87,3 +87,11 @@ void UStellarGameInstance::JoinServer() {
 	SessionSearch->QuerySettings.Set("SEARCH_PRESENCE", true, EOnlineComparisonOp::Equals);
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
 }
+
+void UStellarGameInstance::EnterTutorial()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Called Enter Tutorial"));
+	//Open the tutorial level
+	FName LevelName = TEXT("TutorialMap");
+	UGameplayStatics::OpenLevel(GetWorld(), LevelName);
+}

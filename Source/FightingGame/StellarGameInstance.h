@@ -35,4 +35,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void JoinServer();
+
+	UFUNCTION(BlueprintCallable)
+	void EnterTutorial();
 };
