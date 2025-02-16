@@ -5,6 +5,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 
+#include "Interfaces/OnlineIdentityInterface.h"
+#include "OnlineSubsystem.h"
+
 //FIXME: The player on the server bugs out whenever someone joins. This probaby has to do with how new players are managed in GameMode_Default but I figured I'd add this here as well
 
 UStellarGameInstance::UStellarGameInstance() {
@@ -14,6 +17,8 @@ UStellarGameInstance::UStellarGameInstance() {
 void UStellarGameInstance::Init() {
 
 	Super::Init(); //if there is a red line here, it is a vscode bug
+
+	LoginWithEOS();
 
 	if (IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get()) {
 		SessionInterface = Subsystem->GetSessionInterface();
@@ -94,4 +99,21 @@ void UStellarGameInstance::EnterTutorial()
 	//Open the tutorial level
 	FName LevelName = TEXT("TutorialMap");
 	UGameplayStatics::OpenLevel(GetWorld(), LevelName);
+}
+
+void UStellarGameInstance::LoginWithEOS() {
+	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub)
+	{
+		IOnlineIdentityPtr IdentityInterface = OnlineSub->GetIdentityInterface();
+		if (IdentityInterface.IsValid())
+		{
+			FOnlineAccountCredentials Credentials;
+			Credentials.Type = "accountportal"; // Opens the Epic Games login UI
+			Credentials.Id = "";  // Not needed for Epic login
+			Credentials.Token = "";  // Not needed for Epic login
+
+			IdentityInterface->Login(0, Credentials);
+		}
+	}
 }
