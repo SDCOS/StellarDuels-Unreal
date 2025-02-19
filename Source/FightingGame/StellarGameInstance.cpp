@@ -18,6 +18,8 @@ void UStellarGameInstance::Init() {
 
 	Super::Init(); //if there is a red line here, it is a vscode bug
 
+	UE_LOG(LogTemp, Warning, TEXT("INIT GAME INSTANCE"));
+
 	LoginWithEOS();
 
 	if (IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get()) {
@@ -33,21 +35,32 @@ void UStellarGameInstance::Init() {
 
 void UStellarGameInstance::OnCreateSessionComplete(FName SessionName, bool Succeeded) {
 	if (Succeeded) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Session created"));
 		GetWorld()->ServerTravel("/Game/TestMap?listen");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Session creation failed"));
 	}
 }
 
 void UStellarGameInstance::OnFindSessionComplete(bool Succeeded) {
 	UE_LOG(LogTemp, Warning, TEXT("OnFindSessionComplete has been called"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("OnFindSessionComplete has been called"));
 	if (Succeeded) {
-		UE_LOG(LogTemp, Warning, TEXT("Session found"));
+		UE_LOG(LogTemp, Warning, TEXT("Search complete"));
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Search complete"));
 		TArray<FOnlineSessionSearchResult> SearchResults = SessionSearch->SearchResults;
 		if (SearchResults.Num()) { // false if = 0
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Join session being called"));
 			SessionInterface->JoinSession(0, FName("Stellar Session"), SearchResults[0]); //hardcoding the result that we want to join FOR TESTING (we know that if there is at least one session, SearchResults[0] will exist)
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("0 search results"));
 		}
 	}
 	else {
-		UE_LOG(LogTemp, Warning, TEXT("No session found"));
+		UE_LOG(LogTemp, Warning, TEXT("search failed"));
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("search failed"));
 	}
 }
 
@@ -72,23 +85,39 @@ void UStellarGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 }
 
 void UStellarGameInstance::CreateServer() {
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("CreateServer has been called"));
 	UE_LOG(LogTemp, Warning, TEXT("CreateServer has been called"));
 	FOnlineSessionSettings SessionSettings;
 	SessionSettings.bAllowJoinInProgress = true;
 	SessionSettings.bIsDedicated = false;
-	SessionSettings.bIsLANMatch = (IOnlineSubsystem::Get()->GetSubsystemName() != "NULL") ? false : true;
+	//SessionSettings.bIsLANMatch = (IOnlineSubsystem::Get()->GetSubsystemName() != "NULL") ? false : true;
+	SessionSettings.bIsLANMatch = false;
+	if (IOnlineSubsystem::Get()->GetSubsystemName() != "NULL") {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Subsystem not null"));
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Subsystem null"));
+	}
 	SessionSettings.bShouldAdvertise = true;
 	SessionSettings.bUsesPresence = true;
 	SessionSettings.NumPublicConnections = 5;
 
-	SessionInterface->CreateSession(0, FName("Stellar Session"), SessionSettings); // first comma should be period? There is no way....
+	bool bSuccess = SessionInterface->CreateSession(0, FName("Stellar_Session"), SessionSettings);
+	if (bSuccess) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("request sent"));
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("request failed"));
+	}
 }
 
 void UStellarGameInstance::JoinServer() {
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("JoinServer has been called"));
 	UE_LOG(LogTemp, Warning, TEXT("JoinServer has been called"));
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
-	SessionSearch->bIsLanQuery = (IOnlineSubsystem::Get()->GetSubsystemName() == "NULL");
-	SessionSearch->MaxSearchResults = 10000;
+	//SessionSearch->bIsLanQuery = (IOnlineSubsystem::Get()->GetSubsystemName() == "NULL");
+	SessionSearch->bIsLanQuery = false;
+	SessionSearch->MaxSearchResults = 100;
 	SessionSearch->QuerySettings.Set("SEARCH_PRESENCE", true, EOnlineComparisonOp::Equals);
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
 }
