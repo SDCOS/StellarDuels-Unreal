@@ -176,7 +176,7 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Binding Actions"));
 		// Bind jumping actions
-		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Triggered, this, &APlayerPawn::StartJump);
+		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Started, this, &APlayerPawn::StartJump);
 		EnhancedInput->BindAction(IA_Jump, ETriggerEvent::Completed, this, &APlayerPawn::StopJump);
 		EnhancedInput->BindAction(Forward_Movement, ETriggerEvent::Triggered, this, &APlayerPawn::MoveForward);
 		EnhancedInput->BindAction(Forward_Movement, ETriggerEvent::Completed, this, &APlayerPawn::StopMoving);
@@ -230,7 +230,8 @@ void APlayerPawn::StopSprint()
 
 void APlayerPawn::StartJump()
 {
-	if (!bIsJumping) // First jump
+	bDidDoubleJump = false; //we don't yet know if there has been a double jump
+	if (GetCharacterMovement()->IsMovingOnGround()) // First jump - check if on the ground
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Jumping from ground"));
 		LaunchCharacter(FVector(0, 0, JumpForce), false, true);
@@ -255,7 +256,7 @@ void APlayerPawn::StartJump()
 			UE_LOG(LogTemp, Warning, TEXT("Action jump perform"));
 			PlayerMesh->PlayAnimation(JumpFromStand, false);
 		}
-		bCanDoubleJump = false; // Only allow one mid-air jump
+		bCanDoubleJump = false;
 	}
 }
 
@@ -269,8 +270,8 @@ void APlayerPawn::StartJump()
 //}
 
 void APlayerPawn::StopJump() {
-	bIsJumping = false;
-	bCanDoubleJump = true; // Restore double jump ability
+	//bIsJumping = false;
+	//bCanDoubleJump = true; // Restore double jump ability
 	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
 }
 
