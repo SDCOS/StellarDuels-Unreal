@@ -73,7 +73,7 @@ void ATutorialTarget::SpawnTutorialAgent() {
         return;
     }
 
-    FVector SpawnLocation = FVector(20, 20, 10);
+    FVector SpawnLocation = FVector(20, 20, 500);
     FRotator SpawnRotation = FRotator::ZeroRotator;
 
     FActorSpawnParameters SpawnParams;
@@ -112,14 +112,20 @@ bool ATutorialTarget::IsPlacedInLevel()
 // Called every frame
 void ATutorialTarget::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
+
+    // Ensure StartLocation is set
+    if (StartLocation.IsNearlyZero())
+    {
+        StartLocation = GetActorLocation();
+    }
 
     // Calculate oscillating position
     FVector CurrentLocation = StartLocation;
-    CurrentLocation.Z += MoveDistance * FMath::Sin(GetWorld()->GetTimeSeconds() * MoveSpeed);
+    CurrentLocation.Y += MoveDistance * FMath::Sin(GetWorld()->GetTimeSeconds() * MoveSpeed);
 
     // Apply new location
-    SetActorLocation(CurrentLocation);
+    bool bSuccess = SetActorLocation(CurrentLocation, false);
 }
 
 void ATutorialTarget::Destroyed()
