@@ -230,7 +230,6 @@ void APlayerPawn::StopSprint()
 
 void APlayerPawn::StartJump()
 {
-	bDidDoubleJump = false; //we don't yet know if there has been a double jump
 	if (GetCharacterMovement()->IsMovingOnGround()) // First jump - check if on the ground
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Jumping from ground"));
