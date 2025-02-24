@@ -19,6 +19,7 @@
 // Sets default values
 APlayerPawn::APlayerPawn()
 {
+	//bReplicates = true;
 
 	UE_LOG(LogTemp, Warning, TEXT("Pawn Constructor"));
 

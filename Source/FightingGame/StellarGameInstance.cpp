@@ -52,7 +52,14 @@ void UStellarGameInstance::OnFindSessionComplete(bool Succeeded) {
 		TArray<FOnlineSessionSearchResult> SearchResults = SessionSearch->SearchResults;
 		if (SearchResults.Num()) { // false if = 0
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Join session being called"));
-			SessionInterface->JoinSession(0, FName("Stellar Session"), SearchResults[0]); //hardcoding the result that we want to join FOR TESTING (we know that if there is at least one session, SearchResults[0] will exist)
+			if (SessionInterface->JoinSession(0, FName("Stellar Session"), SearchResults[0])) //hardcoding the result that we want to join FOR TESTING (we know that if there is at least one session, SearchResults[0] will exist)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("JoinSession True"));
+			}
+			else {
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("JoinSession False"));
+			}
+			//FIXME: CHECK IF JOINSESSION RETURNS FALSE 
 		}
 		else {
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("0 search results"));
@@ -65,20 +72,27 @@ void UStellarGameInstance::OnFindSessionComplete(bool Succeeded) {
 }
 
 void UStellarGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result) {
-	UE_LOG(LogTemp, Warning, TEXT("OnJoinSessionComplete has been called"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("OnJoinSessionComplete has been called"));
 	if (APlayerController* PController = UGameplayStatics::GetPlayerController(GetWorld(), 0)) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Found PController"));
 		FString JoinAddress = "";
 		SessionInterface->GetResolvedConnectString(SessionName, JoinAddress);
 		if (JoinAddress != "") {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Found JoinAddress"));
 			UE_LOG(LogTemp, Warning, TEXT("Join address not \"\""));
+			/* USE FOR LAN ONLY
 			if (JoinAddress.Contains(":0"))
 			{
 				JoinAddress = JoinAddress.Replace(TEXT(":0"), TEXT(":7777")); //not resolving the port correctly, so we have to manually set it to 7777, which is unreal's default port for session management and the correct port in this case
-			}
+			}*/
 			UE_LOG(LogTemp, Warning, TEXT("Resolved Join Address: %s"), *JoinAddress);
+			FString DebugMessage = FString::Printf(TEXT("JoinAddress: %s"), *JoinAddress);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, DebugMessage);
 			PController->ClientTravel(JoinAddress, ETravelType::TRAVEL_Absolute);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Post travel"));
 		}
 		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Didn't find JoinAddress"));
 			UE_LOG(LogTemp, Warning, TEXT("Join address is \"\""));
 		}
 	}
@@ -101,8 +115,13 @@ void UStellarGameInstance::CreateServer() {
 	SessionSettings.bShouldAdvertise = true;
 	SessionSettings.bUsesPresence = true;
 	SessionSettings.NumPublicConnections = 5;
+	SessionSettings.bAllowJoinViaPresence = true;
+	SessionSettings.bAllowJoinViaPresenceFriendsOnly = false;
+	SessionSettings.Set("SEARCH_PRESENCE", FString("Stellar_Session"), EOnlineDataAdvertisementType::ViaOnlineService);
 
+	//SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UStellarGameInstance::OnCreateSessionComplete);
 	bool bSuccess = SessionInterface->CreateSession(0, FName("Stellar_Session"), SessionSettings);
+
 	if (bSuccess) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("request sent"));
 	}
@@ -119,6 +138,7 @@ void UStellarGameInstance::JoinServer() {
 	SessionSearch->bIsLanQuery = false;
 	SessionSearch->MaxSearchResults = 100;
 	SessionSearch->QuerySettings.Set("SEARCH_PRESENCE", true, EOnlineComparisonOp::Equals);
+	SessionSearch->QuerySettings.Set("SEARCH_PRESENCE", FString("Stellar_Session"), EOnlineComparisonOp::Equals);
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
 }
 
