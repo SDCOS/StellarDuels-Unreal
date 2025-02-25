@@ -27,11 +27,11 @@ ATutorialTarget::ATutorialTarget()
     RootComponent = AgentMesh;
 
     //Set a default mesh for agent: block 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> BlockMesh(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
-    if (BlockMesh.Succeeded()) {
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> TargetMesh(TEXT("StaticMesh'/Game/Environment/CustomTextures/target-dummy'"));
+    if (TargetMesh.Succeeded()) {
         UE_LOG(LogTemp, Warning, TEXT("Found target"));
-        AgentMesh->SetStaticMesh(BlockMesh.Object);  // Set the static mesh to the cube shape
-        AgentMesh->SetRelativeScale3D(FVector(1.0f));  // Adjust the scale if necessary
+        AgentMesh->SetStaticMesh(TargetMesh.Object);  // Set the static mesh to the cube shape
+        AgentMesh->SetRelativeScale3D(FVector(60.0f));  // Adjust the scale if necessary
     }
 }
 
