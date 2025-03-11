@@ -165,6 +165,7 @@ public:
 	void StopMoving();
 	// Function to handle shooting
 	void Shoot();
+	void StopShoot();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
 	bool bIsCrouching = false;

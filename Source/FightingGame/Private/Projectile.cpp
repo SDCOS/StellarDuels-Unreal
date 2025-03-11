@@ -18,7 +18,7 @@ AProjectile::AProjectile()
 	// Create sphere collision component
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	RootComponent = CollisionComponent;
-	CollisionComponent->InitSphereRadius(10.0f);
+	CollisionComponent->InitSphereRadius(1.0f);
 	CollisionComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 	CollisionComponent->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 

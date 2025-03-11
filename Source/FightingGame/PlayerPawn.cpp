@@ -203,6 +203,7 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Triggered, this, &APlayerPawn::StartSprint);
 		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &APlayerPawn::StopSprint);
 		EnhancedInput->BindAction(IA_Shoot, ETriggerEvent::Triggered, this, &APlayerPawn::Shoot);
+		EnhancedInput->BindAction(IA_Shoot, ETriggerEvent::Completed, this, &APlayerPawn::StopShoot);
 	}
 
 }
@@ -490,6 +491,16 @@ void APlayerPawn::Shoot()
 		{
 			Projectile->SetOwner(this);
 		}
+	}
+}
+
+
+
+void APlayerPawn::StopShoot()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Stop Shoot Called!"));
 	}
 }
 
