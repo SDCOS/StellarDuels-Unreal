@@ -75,6 +75,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	class UInputAction* IA_LookUp;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	class UInputAction* IA_Shoot;
+
+
+	//Combat
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TSubclassOf<class AProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	FVector MuzzleOffset = FVector(100.0f, 0.0f, 50.0f);
+
 
 	//animations
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
@@ -152,6 +163,8 @@ public:
 	void StartSprint();
 	void StopSprint();
 	void StopMoving();
+	// Function to handle shooting
+	void Shoot();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
 	bool bIsCrouching = false;
