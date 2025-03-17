@@ -122,14 +122,40 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* Sprint;
 
-	UPROPERTY(EditAnywhere, Category = "Jumping")
+	UPROPERTY(Replicated, EditAnywhere, Category = "Jumping")
 	float JumpForce = 800.0f; // Jump height
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movement")
 	float WalkSpeed = 500.0f; // Default walking speed
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movement")
 	float SprintSpeed = 1000.0f; // Sprinting speed
+
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movement")
+	float MoveSpeed = 200.0f;
+
+	UPROPERTY(Replicated)
+	bool bIsCrouching = false;
+
+	UPROPERTY(Replicated)
+	bool bIsMoving = false;
+
+	UPROPERTY(Replicated)
+	float CrouchHoldThreshold = 0.2f; // Time (seconds) to determine tap vs hold
+
+	FTimerHandle CrouchTimerHandle;
+
+	UPROPERTY(Replicated)
+	float CrouchStartTime = 0.0f; // Time when crouch button was pressed
+
+	UPROPERTY(Replicated)
+	bool bIsJumping = false;
+
+	UPROPERTY(Replicated)
+	bool bCanDoubleJump = true;
+
+	UPROPERTY(Replicated)
+	bool bIsSprinting = false; // Track if the player is sprinting
 
 
 public:	
@@ -139,7 +165,10 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	void StartJump();
+	void StartJump_Local();
 	void StopJump();
 	void MoveLeft();
 	void MoveRight();
@@ -150,16 +179,24 @@ public:
 	void StartCrouch();
 	void StopCrouch();
 	void StartSprint();
+	void StartSprint_Local();
 	void StopSprint();
+	void StopSprint_Local();
 	void StopMoving();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
-	bool bIsCrouching = false;
-	bool bIsMoving = false;
-	float CrouchHoldThreshold = 0.2f; // Time (seconds) to determine tap vs hold
-	FTimerHandle CrouchTimerHandle;
-	float CrouchStartTime = 0.0f; // Time when crouch button was pressed
-	bool bIsJumping = false;
-	bool bCanDoubleJump = true;
-	bool bIsSprinting = false; // Track if the player is sprinting
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartJump();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopJump();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartSprint();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopSprint();
+
+
 };

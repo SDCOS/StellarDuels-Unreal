@@ -11,15 +11,22 @@
 #include "InputAction.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
+
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
 
 //FIXME: Jump animation is wack, also add running animations
+//FIXME: Replication (all functions including animations)
+//FIXME: In StopMove - make a better transition animation to stand
+//FIXME: For situations where, say, a and w are pressed at once: integrate that logic into existing move functions by setting a bools,
+//for instance, "is moving right" or "is moving left" to see if we need to go diagonal. also add animations and transition animations for this
 
 // Sets default values
 APlayerPawn::APlayerPawn()
 {
-
+	bReplicates = true;
+	GetCharacterMovement()->SetIsReplicated(true);
 	UE_LOG(LogTemp, Warning, TEXT("Pawn Constructor"));
 
  	// Set this pawn to call Tick() every frame.  Is important for frame-by-frame operations (like calculating fps)
@@ -143,7 +150,9 @@ void APlayerPawn::BeginPlay()
 	//allows us to control the skeletal mesh (?) might not need this ****
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
-		PC->Possess(this);
+		if (HasAuthority()) {
+			PC->Possess(this);
+		}
 		PC->SetInputMode(FInputModeGameOnly()); // this is super important! Allows people to move when they create a server
 		PC->bShowMouseCursor = false;
 		UE_LOG(LogTemp, Warning, TEXT("Player Possessed"));
@@ -162,6 +171,20 @@ void APlayerPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void APlayerPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(APlayerPawn, SprintSpeed);
+	DOREPLIFETIME(APlayerPawn, WalkSpeed);
+	DOREPLIFETIME(APlayerPawn, JumpForce);
+	DOREPLIFETIME(APlayerPawn, bIsCrouching);
+	DOREPLIFETIME(APlayerPawn, bIsMoving);
+	DOREPLIFETIME(APlayerPawn, bIsJumping);
+	DOREPLIFETIME(APlayerPawn, bIsSprinting);
+	DOREPLIFETIME(APlayerPawn, bCanDoubleJump);
 }
 
 // Called to bind functionality to input
@@ -198,6 +221,27 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 void APlayerPawn::StartSprint()
 {
+	if (HasAuthority()) {
+		if (!bIsSprinting && bIsMoving)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Started Sprinting"));
+			GetCharacterMovement()->MaxWalkSpeed = SprintSpeed; // Increase speed
+			bIsSprinting = true;
+
+			if (Sprint)
+			{
+				PlayerMesh->PlayAnimation(Sprint, true);
+			}
+		}
+	}
+	else {
+		StartSprint_Local();
+		Server_StartSprint();
+	}
+}
+
+void APlayerPawn::StartSprint_Local()
+{
 	if (!bIsSprinting && bIsMoving)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Started Sprinting"));
@@ -211,7 +255,39 @@ void APlayerPawn::StartSprint()
 	}
 }
 
+void APlayerPawn::Server_StartSprint_Implementation()
+{
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed; // Increase speed
+
+	if (Sprint)
+	{
+		PlayerMesh->PlayAnimation(Sprint, true);
+	}
+}
+
 void APlayerPawn::StopSprint()
+{
+	if (HasAuthority()) {
+		if (bIsSprinting)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Stopped Sprinting"));
+			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; // Reset speed
+			bIsSprinting = false;
+
+			if (WalkForward)
+			{
+				if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
+				else PlayerMesh->PlayAnimation(Idle, true);
+			}
+		}
+	}
+	else {
+		StopSprint_Local();
+		Server_StopSprint();
+	}
+}
+
+void APlayerPawn::StopSprint_Local()
 {
 	if (bIsSprinting)
 	{
@@ -227,15 +303,65 @@ void APlayerPawn::StopSprint()
 	}
 }
 
+void APlayerPawn::Server_StopSprint_Implementation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Stopped Sprinting"));
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; // Reset speed
+	bIsSprinting = false;
+
+	if (WalkForward)
+	{
+		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
+		else PlayerMesh->PlayAnimation(Idle, true);
+	}
+}
 
 void APlayerPawn::StartJump()
 {
+	if (HasAuthority()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("StartJump -> has authority"));
+		if (GetCharacterMovement()->IsMovingOnGround()) // First jump - check if on the ground
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Jumping from ground"));
+			LaunchCharacter(FVector(0, 0, JumpForce), false, true);
+			bIsJumping = true;
+			bCanDoubleJump = true; // Enable double jump
+			// Play correct animation
+			if (bIsMoving && WalkForward)
+			{
+				PlayerMesh->PlayAnimation(WalkForward, true);
+			}
+			else if (JumpFromStand)
+			{
+				PlayerMesh->PlayAnimation(JumpFromStand, false);
+			}
+		}
+		else if (bCanDoubleJump) // Double Jump
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Double Jump!"));
+			LaunchCharacter(FVector(0, 0, JumpForce * 1.0f), false, true);
+			if (JumpFromStand)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Action jump perform"));
+				PlayerMesh->PlayAnimation(JumpFromStand, false);
+			}
+			bCanDoubleJump = false;
+		}
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("StartJump -> doesn't have authority"));
+		StartJump_Local();
+		Server_StartJump();
+	}
+}
+
+void APlayerPawn::StartJump_Local() { //does not check for authority, only will be used locally for the client and will not change variables replicated to the server. This removes lag on the end of the client when they jump
 	if (GetCharacterMovement()->IsMovingOnGround()) // First jump - check if on the ground
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Jumping from ground"));
 		LaunchCharacter(FVector(0, 0, JumpForce), false, true);
-		bIsJumping = true;
-		bCanDoubleJump = true; // Enable double jump
+		//bIsJumping = true;
+		//bCanDoubleJump = true; // Enable double jump
 		// Play correct animation
 		if (bIsMoving && WalkForward)
 		{
@@ -255,7 +381,7 @@ void APlayerPawn::StartJump()
 			UE_LOG(LogTemp, Warning, TEXT("Action jump perform"));
 			PlayerMesh->PlayAnimation(JumpFromStand, false);
 		}
-		bCanDoubleJump = false;
+		//bCanDoubleJump = false;
 	}
 }
 
@@ -271,7 +397,22 @@ void APlayerPawn::StartJump()
 void APlayerPawn::StopJump() {
 	//bIsJumping = false;
 	//bCanDoubleJump = true; // Restore double jump ability
-	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
+	if (HasAuthority()) {
+		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
+	}
+	else {
+		Server_StopJump();
+	}
+}
+
+void APlayerPawn::Server_StartJump_Implementation()
+{
+	StartJump();
+}
+
+void APlayerPawn::Server_StopJump_Implementation()
+{
+	StopJump();
 }
 
 
@@ -341,6 +482,7 @@ void APlayerPawn::MoveForward()
 
 	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	AddMovementInput(Direction, 1); //2nd param is a speed multiplier from -1 to 1
+
 }
 
 void APlayerPawn::StopMoving()
