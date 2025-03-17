@@ -418,6 +418,29 @@ void APlayerPawn::Server_StopJump_Implementation()
 
 void APlayerPawn::StartCrouch()
 {
+	if (HasAuthority()) {
+		CrouchStartTime = GetWorld()->GetTimeSeconds();
+		if (!bIsCrouching) {
+			UE_LOG(LogTemp, Warning, TEXT("Crouching"));
+			GetCharacterMovement()->MaxWalkSpeed = 200.0f; //Reduce the speed
+			bIsCrouching = true;
+			if (StandtoCrouch)
+			{
+				PlayerMesh->PlayAnimation(StandtoCrouch, false);
+				if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+			}
+
+			GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &APlayerPawn::PlayCrouchIdle, StandtoCrouch->GetPlayLength(), false);
+		}
+	}
+	else {
+		StartCrouch_Local();
+		Server_StartCrouch();
+	}
+}
+
+void APlayerPawn::StartCrouch_Local()
+{
 	CrouchStartTime = GetWorld()->GetTimeSeconds();
 	if (!bIsCrouching) {
 		UE_LOG(LogTemp, Warning, TEXT("Crouching"));
@@ -433,7 +456,22 @@ void APlayerPawn::StartCrouch()
 	}
 }
 
-void APlayerPawn::PlayCrouchIdle()
+void APlayerPawn::Server_StartCrouch_Implementation()
+{
+	CrouchStartTime = GetWorld()->GetTimeSeconds();
+	UE_LOG(LogTemp, Warning, TEXT("Crouching"));
+	GetCharacterMovement()->MaxWalkSpeed = 200.0f; //Reduce the speed
+	bIsCrouching = true;
+	if (StandtoCrouch)
+	{
+		PlayerMesh->PlayAnimation(StandtoCrouch, false);
+		if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &APlayerPawn::PlayCrouchIdle, StandtoCrouch->GetPlayLength(), false);
+}
+
+void APlayerPawn::PlayCrouchIdle() //////////////////////if statement may screw stuff up
 {
 	if (bIsCrouching && CrouchIdle)
 	{
@@ -449,6 +487,37 @@ void APlayerPawn::PlayCrouchIdle()
 
 void APlayerPawn::StopCrouch()
 {
+	if (HasAuthority()) {
+		float HeldTime = GetWorld()->GetTimeSeconds() - CrouchStartTime;
+		GetWorld()->GetTimerManager().ClearTimer(CrouchTimerHandle);
+		if (bIsCrouching)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Standing up"));
+			GetCharacterMovement()->MaxWalkSpeed = 500.0f;
+			bIsCrouching = false;
+			PlayerMesh->PlayAnimation(CrouchToStand, false);
+			if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
+		}
+	}
+	else {
+		StopCrouch_Local();
+		Server_StopCrouch();
+	}
+}
+
+void APlayerPawn::Server_StopCrouch_Implementation()
+{
+	float HeldTime = GetWorld()->GetTimeSeconds() - CrouchStartTime;
+	GetWorld()->GetTimerManager().ClearTimer(CrouchTimerHandle);
+	UE_LOG(LogTemp, Warning, TEXT("Standing up"));
+	GetCharacterMovement()->MaxWalkSpeed = 500.0f;
+	bIsCrouching = false;
+	PlayerMesh->PlayAnimation(CrouchToStand, false);
+	if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
+}
+
+void APlayerPawn::StopCrouch_Local()
+{
 	float HeldTime = GetWorld()->GetTimeSeconds() - CrouchStartTime;
 	GetWorld()->GetTimerManager().ClearTimer(CrouchTimerHandle);
 	if (bIsCrouching)
@@ -462,6 +531,36 @@ void APlayerPawn::StopCrouch()
 }
 
 void APlayerPawn::MoveForward()
+{
+	if (HasAuthority()) {
+		UE_LOG(LogTemp, Warning, TEXT("move forward"));
+		if (!bIsMoving)
+		{
+			bIsMoving = true;
+			if (WalkForward)
+			{
+				if (!bIsCrouching) {
+					PlayerMesh->PlayAnimation(WalkForward, true);
+				}
+				else {
+					PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+				}
+			}
+		}
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		AddMovementInput(Direction, 1); //2nd param is a speed multiplier from -1 to 1
+	}
+	else {
+		MoveForward_Local();
+		Server_MoveForward();
+	}
+
+}
+
+void APlayerPawn::MoveForward_Local()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move forward"));
 	if (!bIsMoving)
@@ -485,7 +584,38 @@ void APlayerPawn::MoveForward()
 
 }
 
+void APlayerPawn::Server_MoveForward_Implementation()
+{
+	MoveForward_Local();
+}
+
 void APlayerPawn::StopMoving()
+{
+	if (HasAuthority()) {
+		if (bIsMoving)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("stopped moving"));
+
+			bIsMoving = false;
+
+			if (Stand)
+			{
+				if (!bIsCrouching) {
+					PlayerMesh->PlayAnimation(Idle, true); // Loop idle animation
+				}
+				else {
+					PlayerMesh->PlayAnimation(CrouchIdle, true);
+				}
+			}
+		}
+	}
+	else {
+		StopMoving_Local();
+		Server_StopMoving();
+	}
+}
+
+void APlayerPawn::StopMoving_Local()
 {
 	if (bIsMoving)
 	{
@@ -505,7 +635,41 @@ void APlayerPawn::StopMoving()
 	}
 }
 
+void APlayerPawn::Server_StopMoving_Implementation()
+{
+	StopMoving_Local();
+}
+
 void APlayerPawn::MoveBackward()
+{
+	if (HasAuthority()) {
+		UE_LOG(LogTemp, Warning, TEXT("move backward"));
+		if (!bIsMoving)
+		{
+			bIsMoving = true;
+			if (WalkBackward)
+			{
+				if (!bIsCrouching) {
+					PlayerMesh->PlayAnimation(WalkBackward, true);
+				}
+				else {
+					PlayerMesh->PlayAnimation(CrouchWalkBackward, true);
+				}
+			}
+		}
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		AddMovementInput(Direction, -1);
+	}
+	else {
+		MoveBackward_Local();
+		Server_MoveBackward();
+	}
+}
+
+void APlayerPawn::MoveBackward_Local()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move backward"));
 	if (!bIsMoving)
@@ -528,7 +692,43 @@ void APlayerPawn::MoveBackward()
 	AddMovementInput(Direction, -1);
 }
 
+void APlayerPawn::Server_MoveBackward_Implementation()
+{
+	MoveBackward_Local();
+}
+
 void APlayerPawn::MoveLeft()
+{
+	if (HasAuthority()) {
+		UE_LOG(LogTemp, Warning, TEXT("left"));
+
+		if (!bIsMoving)
+		{
+			bIsMoving = true;
+			if (WalkForward)
+			{
+				if (!bIsCrouching) {
+					PlayerMesh->PlayAnimation(WalkLeft, true);
+				}
+				else {
+					PlayerMesh->PlayAnimation(CrouchWalkLeft, true);
+				}
+			}
+		}
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		// Use the Y-axis for left/right movement
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		AddMovementInput(Direction, -1);
+	}
+	else {
+		MoveLeft_Local();
+		Server_MoveLeft();
+	}
+}
+
+void APlayerPawn::MoveLeft_Local()
 {
 	UE_LOG(LogTemp, Warning, TEXT("left"));
 
@@ -553,7 +753,47 @@ void APlayerPawn::MoveLeft()
 	AddMovementInput(Direction, -1);
 }
 
+void APlayerPawn::Server_MoveLeft_Implementation()
+{
+	MoveLeft_Local();
+}
+
 void APlayerPawn::MoveRight()
+{
+	if (HasAuthority()) {
+		UE_LOG(LogTemp, Warning, TEXT("right"));
+		if (!bIsMoving)
+		{
+			bIsMoving = true;
+			if (WalkForward)
+			{
+				if (!bIsCrouching) {
+					PlayerMesh->PlayAnimation(WalkRight, true);
+				}
+				else {
+					PlayerMesh->PlayAnimation(CrouchWalkRight, true);
+				}
+			}
+		}
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		// Use the Y-axis for left/right movement
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		AddMovementInput(Direction, 1);
+	}
+	else {
+		MoveRight_Local();
+		Server_MoveRight();
+	}
+}
+
+void APlayerPawn::Server_MoveRight_Implementation()
+{
+	MoveRight_Local();
+}
+
+void APlayerPawn::MoveRight_Local()
 {
 	UE_LOG(LogTemp, Warning, TEXT("right"));
 	if (!bIsMoving)

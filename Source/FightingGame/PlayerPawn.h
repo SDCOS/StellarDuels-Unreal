@@ -171,18 +171,25 @@ public:
 	void StartJump_Local();
 	void StopJump();
 	void MoveLeft();
+	void MoveLeft_Local();
 	void MoveRight();
+	void MoveRight_Local();
 	void MoveForward();
+	void MoveForward_Local();
 	void MoveBackward();
+	void MoveBackward_Local();
 	void LookUp(const FInputActionValue& Value);
 	void Turn(const FInputActionValue& Value);
 	void StartCrouch();
+	void StartCrouch_Local();
 	void StopCrouch();
+	void StopCrouch_Local();
 	void StartSprint();
 	void StartSprint_Local();
 	void StopSprint();
 	void StopSprint_Local();
 	void StopMoving();
+	void StopMoving_Local();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
 
@@ -198,5 +205,25 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_StopSprint();
 
+	UFUNCTION(Server, Reliable)
+	void Server_MoveLeft();
+
+	UFUNCTION(Server, Reliable)
+	void Server_MoveRight();
+
+	UFUNCTION(Server, Reliable)
+	void Server_MoveForward();
+
+	UFUNCTION(Server, Reliable)
+	void Server_MoveBackward();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartCrouch();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopCrouch();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopMoving();
 
 };
