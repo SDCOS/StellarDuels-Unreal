@@ -18,7 +18,7 @@ AProjectile::AProjectile()
 	// Create sphere collision component
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	RootComponent = CollisionComponent;
-	CollisionComponent->InitSphereRadius(1.0f);
+	CollisionComponent->InitSphereRadius(0.1f);
 	CollisionComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 	CollisionComponent->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 
@@ -26,6 +26,7 @@ AProjectile::AProjectile()
 	SphereMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SphereMesh"));
 	SphereMesh->SetupAttachment(RootComponent);
 	SphereMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SphereMesh->SetRelativeScale3D(FVector(0.1f));
 
 	//Set default sphere mesh
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMeshAsset(TEXT("/Engine/BasicShapes/Sphere"));
@@ -36,10 +37,11 @@ AProjectile::AProjectile()
 
 	//Create projectile movement component
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-	ProjectileMovementComponent->InitialSpeed = 2000.0f;
-	ProjectileMovementComponent->MaxSpeed = 2000.0f;
+	ProjectileMovementComponent->InitialSpeed = 5000.0f;
+	ProjectileMovementComponent->MaxSpeed = 5000.0f;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->bShouldBounce = false;
+	ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
 }
 
 //Called when the game starts or when spawned
