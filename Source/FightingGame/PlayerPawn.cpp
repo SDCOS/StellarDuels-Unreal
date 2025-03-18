@@ -12,6 +12,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "UObject/ConstructorHelpers.h"
 
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
@@ -139,6 +140,27 @@ APlayerPawn::APlayerPawn()
 	CrouchWalkLeft = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Lt_Rifle_Ironsights.Crouch_Walk_Lt_Rifle_Ironsights'"));
 	CrouchWalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Rt_Rifle_Ironsights.Crouch_Walk_Rt_Rifle_Ironsights'"));
 	Sprint = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Sprint_Fwd_Rifle.Sprint_Fwd_Rifle'"));
+	
+	// Initialize health values
+	Health = 100.f;
+	MaxHealth = 100.f;
+
+	// Create and attach a widget component for the health bar.
+	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComponent"));
+	if (HealthBarComponent)
+	{
+		HealthBarComponent->SetupAttachment(RootComponent);
+		// Adjust the location so the health bar appears above the pawn.
+		HealthBarComponent->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
+		HealthBarComponent->SetDrawSize(FVector2D(200.f, 50.f));
+
+		// Set the widget class to our HealthBarWidget.
+		static ConstructorHelpers::FClassFinder<UUserWidget> HealthBarWidgetClass(TEXT("/Game/UI/HealthBarWidget"));
+		if (HealthBarWidgetClass.Succeeded())
+		{
+			HealthBarComponent->SetWidgetClass(HealthBarWidgetClass.Class);
+		}
+	}
 }
 
 // Called when the game starts or when spawned
@@ -155,6 +177,11 @@ void APlayerPawn::BeginPlay()
 		PC->SetInputMode(FInputModeGameOnly()); // this is super important! Allows people to move when they create a server
 		PC->bShowMouseCursor = false;
 		UE_LOG(LogTemp, Warning, TEXT("Player Possessed"));
+	}
+
+	if (UHealthBarWidget* HealthWidget = Cast<UHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
+	{
+		HealthWidget->UpdateHealth(Health / MaxHealth);
 	}
 
 	//for inputs
