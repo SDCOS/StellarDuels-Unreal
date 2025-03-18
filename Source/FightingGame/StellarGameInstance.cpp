@@ -80,11 +80,11 @@ void UStellarGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 		if (JoinAddress != "") {
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Found JoinAddress"));
 			UE_LOG(LogTemp, Warning, TEXT("Join address not \"\""));
-			/* USE FOR LAN ONLY
+			// USE FOR LAN ONLY
 			if (JoinAddress.Contains(":0"))
 			{
 				JoinAddress = JoinAddress.Replace(TEXT(":0"), TEXT(":7777")); //not resolving the port correctly, so we have to manually set it to 7777, which is unreal's default port for session management and the correct port in this case
-			}*/
+			}
 			UE_LOG(LogTemp, Warning, TEXT("Resolved Join Address: %s"), *JoinAddress);
 			FString DebugMessage = FString::Printf(TEXT("JoinAddress: %s"), *JoinAddress);
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, DebugMessage);
