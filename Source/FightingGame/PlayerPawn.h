@@ -15,6 +15,8 @@
 #include "EnhancedInputComponent.h"
 
 #include "PlayerPawn.generated.h"
+#include "Components/WidgetComponent.h"
+#include "HealthBarWidget.h"
 
 class UInputMappingContext;
 class UInputAction;
@@ -203,6 +205,7 @@ public:
 	void StopMoving_Local();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
+	//void TakeDamage(float DamageAmount);
 
 	UFUNCTION(Server, Reliable)
 	void Server_StartJump();
