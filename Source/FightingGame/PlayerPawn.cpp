@@ -25,8 +25,7 @@
 // Sets default values
 APlayerPawn::APlayerPawn()
 {
-	bReplicates = true;
-	GetCharacterMovement()->SetIsReplicated(true);
+
 	UE_LOG(LogTemp, Warning, TEXT("Pawn Constructor"));
 
  	// Set this pawn to call Tick() every frame.  Is important for frame-by-frame operations (like calculating fps)
