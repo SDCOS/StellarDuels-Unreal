@@ -157,6 +157,17 @@ protected:
 	UPROPERTY(Replicated)
 	bool bIsSprinting = false; // Track if the player is sprinting
 
+	// Health values
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Health")
+	float Health = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+	float MaxHealth = 100.f;
+
+	// Health bar widget component (attached to the pawn)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	UWidgetComponent* HealthBarComponent;
+
 
 public:	
 	// Called every frame
