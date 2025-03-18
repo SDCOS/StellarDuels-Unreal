@@ -819,6 +819,19 @@ void APlayerPawn::Server_MoveRight_Implementation()
 	MoveRight_Local();
 }
 
+void APlayerPawn::TakeDamage(float DamageAmount)
+{
+	Health = FMath::Clamp(Health - DamageAmount, 0.f, MaxHealth);
+
+	// Update the health bar widget.
+	if (UHealthBarWidget* HealthWidget = Cast<UHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
+	{
+		HealthWidget->UpdateHealth(Health / MaxHealth);
+	}
+
+	// Optionally, handle death here (if Health <= 0)
+}
+
 void APlayerPawn::MoveRight_Local()
 {
 	UE_LOG(LogTemp, Warning, TEXT("right"));
