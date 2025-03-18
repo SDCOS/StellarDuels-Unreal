@@ -141,26 +141,26 @@ APlayerPawn::APlayerPawn()
 	CrouchWalkRight = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Crouch_Walk_Rt_Rifle_Ironsights.Crouch_Walk_Rt_Rifle_Ironsights'"));
 	Sprint = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Sprint_Fwd_Rifle.Sprint_Fwd_Rifle'"));
 	
-	// Initialize health values
-	Health = 100.f;
-	MaxHealth = 100.f;
+	// // Initialize health values
+	// Health = 100.f;
+	// MaxHealth = 100.f;
 
-	// Create and attach a widget component for the health bar.
-	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComponent"));
-	if (HealthBarComponent)
-	{
-		HealthBarComponent->SetupAttachment(RootComponent);
-		// Adjust the location so the health bar appears above the pawn.
-		HealthBarComponent->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
-		HealthBarComponent->SetDrawSize(FVector2D(200.f, 50.f));
+	// // Create and attach a widget component for the health bar.
+	// HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarComponent"));
+	// if (HealthBarComponent)
+	// {
+	// 	HealthBarComponent->SetupAttachment(RootComponent);
+	// 	// Adjust the location so the health bar appears above the pawn.
+	// 	HealthBarComponent->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
+	// 	HealthBarComponent->SetDrawSize(FVector2D(200.f, 50.f));
 
-		// Set the widget class to our HealthBarWidget.
-		static ConstructorHelpers::FClassFinder<UUserWidget> HealthBarWidgetClass(TEXT("/Game/UI/HealthBarWidget"));
-		if (HealthBarWidgetClass.Succeeded())
-		{
-			HealthBarComponent->SetWidgetClass(HealthBarWidgetClass.Class);
-		}
-	}
+	// 	// Set the widget class to our HealthBarWidget.
+	// 	static ConstructorHelpers::FClassFinder<UUserWidget> HealthBarWidgetClass(TEXT("/Game/UI/HealthBarWidget"));
+	// 	if (HealthBarWidgetClass.Succeeded())
+	// 	{
+	// 		HealthBarComponent->SetWidgetClass(HealthBarWidgetClass.Class);
+	// 	}
+	// }
 }
 
 // Called when the game starts or when spawned
@@ -179,10 +179,10 @@ void APlayerPawn::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("Player Possessed"));
 	}
 
-	if (UHealthBarWidget* HealthWidget = Cast<UHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
-	{
-		HealthWidget->UpdateHealth(Health / MaxHealth);
-	}
+	// if (UHealthBarWidget* HealthWidget = Cast<UHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
+	// {
+	// 	HealthWidget->UpdateHealth(Health / MaxHealth);
+	// }
 
 	//for inputs
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetWorld()->GetFirstLocalPlayerFromController());
@@ -819,18 +819,18 @@ void APlayerPawn::Server_MoveRight_Implementation()
 	MoveRight_Local();
 }
 
-void APlayerPawn::TakeDamage(float DamageAmount)
-{
-	Health = FMath::Clamp(Health - DamageAmount, 0.f, MaxHealth);
-
-	// Update the health bar widget.
-	if (UHealthBarWidget* HealthWidget = Cast<UHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
-	{
-		HealthWidget->UpdateHealth(Health / MaxHealth);
-	}
-
-	// Optionally, handle death here (if Health <= 0)
-}
+//void APlayerPawn::TakeDamage(float DamageAmount)
+//{
+//	Health = FMath::Clamp(Health - DamageAmount, 0.f, MaxHealth);
+//
+//	// Update the health bar widget.
+//	if (UHealthBarWidget* HealthWidget = Cast<UHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
+//	{
+//		HealthWidget->UpdateHealth(Health / MaxHealth);
+//	}
+//
+//	// Optionally, handle death here (if Health <= 0)
+//}
 
 void APlayerPawn::MoveRight_Local()
 {
