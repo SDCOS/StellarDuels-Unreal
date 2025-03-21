@@ -226,4 +226,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_StopMoving();
 
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAnimationLooping(UAnimSequence* Anim);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAnimationNonLooping(UAnimSequence* Anim);
 };
