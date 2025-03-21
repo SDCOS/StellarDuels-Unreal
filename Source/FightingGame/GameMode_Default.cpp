@@ -27,7 +27,9 @@ void AGameMode_Default::BeginPlay()
 }
 
 void AGameMode_Default::PostLogin(APlayerController* NewPlayer) {
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("postlogin called"));
     Super::PostLogin(NewPlayer);
+
     APlayerController* ServerPC = Cast<APlayerController>(GetWorld()->GetFirstPlayerController());
 
     //for debugging *****
@@ -55,6 +57,13 @@ void AGameMode_Default::PostLogin(APlayerController* NewPlayer) {
         ServerPC->Possess(InitPawn); // Replace with the reference to your server-side pawn
         UE_LOG(LogTemp, Warning, TEXT("Repossessed server-side pawn"));
     } // WORK ON THIS FUTURE FLYNN - -  - - - -  - - -
+
+    APawn* NewPlayerPawn = NewPlayer->GetPawn();
+    if (NewPlayerPawn)
+    {
+        NewPlayerPawn->SetOwner(NewPlayer);
+    }
+
 }
 
 
