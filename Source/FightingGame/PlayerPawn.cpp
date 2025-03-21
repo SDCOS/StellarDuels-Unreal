@@ -15,9 +15,9 @@
 
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
-
+//FIXME: Loop up and down animations
 //FIXME: Jump animation is wack, also add running animations
-//FIXME: Replication (all functions including animations)
+//FIXME: Replication (all functions including animations) - - - Jump animation not replicating for some reasion - - actually it looks like it isnt bc you need to hold spacebar for the full animation to play
 //FIXME: In StopMove - make a better transition animation to stand
 //FIXME: For situations where, say, a and w are pressed at once: integrate that logic into existing move functions by setting a bools,
 //for instance, "is moving right" or "is moving left" to see if we need to go diagonal. also add animations and transition animations for this
@@ -218,20 +218,28 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 }
 
+void APlayerPawn::Multicast_PlayAnimationLooping_Implementation(UAnimSequence* Anim)
+{
+	if (!IsLocallyControlled()) // Prevents double-playing on the local client
+	{
+		PlayerMesh->PlayAnimation(Anim, true);
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("multicast looping called"));
+	}
+}
+
+void APlayerPawn::Multicast_PlayAnimationNonLooping_Implementation(UAnimSequence* Anim)
+{
+	if (!IsLocallyControlled()) // Prevents double-playing on the local client
+	{
+		PlayerMesh->PlayAnimation(Anim, true);
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("multicast nonlooping called"));
+	}
+}
+
 void APlayerPawn::StartSprint()
 {
 	if (HasAuthority()) {
-		if (!bIsSprinting && bIsMoving)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Started Sprinting"));
-			GetCharacterMovement()->MaxWalkSpeed = SprintSpeed; // Increase speed
-			bIsSprinting = true;
-
-			if (Sprint)
-			{
-				PlayerMesh->PlayAnimation(Sprint, true);
-			}
-		}
+		StartSprint_Local();
 	}
 	else {
 		StartSprint_Local();
@@ -250,6 +258,7 @@ void APlayerPawn::StartSprint_Local()
 		if (Sprint)
 		{
 			PlayerMesh->PlayAnimation(Sprint, true);
+			Multicast_PlayAnimationLooping(Sprint);
 		}
 	}
 }
@@ -267,18 +276,7 @@ void APlayerPawn::Server_StartSprint_Implementation()
 void APlayerPawn::StopSprint()
 {
 	if (HasAuthority()) {
-		if (bIsSprinting)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Stopped Sprinting"));
-			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; // Reset speed
-			bIsSprinting = false;
-
-			if (WalkForward)
-			{
-				if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
-				else PlayerMesh->PlayAnimation(Idle, true);
-			}
-		}
+		StopSprint_Local();
 	}
 	else {
 		StopSprint_Local();
@@ -296,8 +294,14 @@ void APlayerPawn::StopSprint_Local()
 
 		if (WalkForward)
 		{
-			if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
-			else PlayerMesh->PlayAnimation(Idle, true);
+			if (bIsMoving) {
+				PlayerMesh->PlayAnimation(WalkForward, true);
+				Multicast_PlayAnimationLooping(WalkForward);
+			}
+			else {
+				PlayerMesh->PlayAnimation(Idle, true);
+				Multicast_PlayAnimationLooping(Idle);
+			}
 		}
 	}
 }
@@ -317,34 +321,16 @@ void APlayerPawn::Server_StopSprint_Implementation()
 
 void APlayerPawn::StartJump()
 {
+	//Multicast_PlayAnimationNonLooping(JumpFromStand);
 	if (HasAuthority()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("StartJump -> has authority"));
-		if (GetCharacterMovement()->IsMovingOnGround()) // First jump - check if on the ground
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Jumping from ground"));
-			LaunchCharacter(FVector(0, 0, JumpForce), false, true);
-			bIsJumping = true;
-			bCanDoubleJump = true; // Enable double jump
-			// Play correct animation
-			if (bIsMoving && WalkForward)
-			{
-				PlayerMesh->PlayAnimation(WalkForward, true);
-			}
-			else if (JumpFromStand)
-			{
-				PlayerMesh->PlayAnimation(JumpFromStand, false);
-			}
-		}
-		else if (bCanDoubleJump) // Double Jump
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Double Jump!"));
-			LaunchCharacter(FVector(0, 0, JumpForce * 1.0f), false, true);
-			if (JumpFromStand)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Action jump perform"));
-				PlayerMesh->PlayAnimation(JumpFromStand, false);
-			}
+		StartJump_Local();
+		if (!GetCharacterMovement()->IsMovingOnGround()) {
 			bCanDoubleJump = false;
+		}
+		else {
+			if (GetCharacterMovement()->IsMovingOnGround() && !bCanDoubleJump) {
+				bCanDoubleJump = true;
+			}
 		}
 	}
 	else {
@@ -362,13 +348,13 @@ void APlayerPawn::StartJump_Local() { //does not check for authority, only will 
 		//bIsJumping = true;
 		//bCanDoubleJump = true; // Enable double jump
 		// Play correct animation
-		if (bIsMoving && WalkForward)
-		{
-			PlayerMesh->PlayAnimation(WalkForward, true);
-		}
-		else if (JumpFromStand)
+		if (JumpFromStand)
 		{
 			PlayerMesh->PlayAnimation(JumpFromStand, false);
+			Multicast_PlayAnimationNonLooping(JumpFromStand);
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("JumpFromStand is a nullptr"));
 		}
 	}
 	else if (bCanDoubleJump) // Double Jump
@@ -379,6 +365,10 @@ void APlayerPawn::StartJump_Local() { //does not check for authority, only will 
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Action jump perform"));
 			PlayerMesh->PlayAnimation(JumpFromStand, false);
+			Multicast_PlayAnimationNonLooping(JumpFromStand);
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("JumpFromStand is a nullptr"));
 		}
 		//bCanDoubleJump = false;
 	}
@@ -397,7 +387,14 @@ void APlayerPawn::StopJump() {
 	//bIsJumping = false;
 	//bCanDoubleJump = true; // Restore double jump ability
 	if (HasAuthority()) {
-		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, false);
+		if (bIsMoving) {
+			PlayerMesh->PlayAnimation(WalkForward, false);
+			Multicast_PlayAnimationNonLooping(WalkForward);
+		}
+		else {
+			PlayerMesh->PlayAnimation(Idle, false);
+			Multicast_PlayAnimationNonLooping(Idle); //Loop here? check loops and non loops in the future
+		}
 	}
 	else {
 		Server_StopJump();
@@ -418,19 +415,7 @@ void APlayerPawn::Server_StopJump_Implementation()
 void APlayerPawn::StartCrouch()
 {
 	if (HasAuthority()) {
-		CrouchStartTime = GetWorld()->GetTimeSeconds();
-		if (!bIsCrouching) {
-			UE_LOG(LogTemp, Warning, TEXT("Crouching"));
-			GetCharacterMovement()->MaxWalkSpeed = 200.0f; //Reduce the speed
-			bIsCrouching = true;
-			if (StandtoCrouch)
-			{
-				PlayerMesh->PlayAnimation(StandtoCrouch, false);
-				if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, true);
-			}
-
-			GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &APlayerPawn::PlayCrouchIdle, StandtoCrouch->GetPlayLength(), false);
-		}
+		StartCrouch_Local();
 	}
 	else {
 		StartCrouch_Local();
@@ -448,7 +433,11 @@ void APlayerPawn::StartCrouch_Local()
 		if (StandtoCrouch)
 		{
 			PlayerMesh->PlayAnimation(StandtoCrouch, false);
-			if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+			Multicast_PlayAnimationNonLooping(StandtoCrouch);
+			if (bIsMoving) {
+				PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+				Multicast_PlayAnimationLooping(CrouchWalkForward);
+			}
 		}
 
 		GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &APlayerPawn::PlayCrouchIdle, StandtoCrouch->GetPlayLength(), false);
@@ -477,9 +466,12 @@ void APlayerPawn::PlayCrouchIdle() //////////////////////if statement may screw 
 		UE_LOG(LogTemp, Warning, TEXT("Crouch Idle"));
 		if (!bIsMoving) {
 			PlayerMesh->PlayAnimation(CrouchIdle, false);
+			Multicast_PlayAnimationNonLooping(CrouchIdle);
+
 		}
 		else {
 			PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+			Multicast_PlayAnimationLooping(CrouchWalkForward);
 		}
 	}
 }
@@ -487,16 +479,7 @@ void APlayerPawn::PlayCrouchIdle() //////////////////////if statement may screw 
 void APlayerPawn::StopCrouch()
 {
 	if (HasAuthority()) {
-		float HeldTime = GetWorld()->GetTimeSeconds() - CrouchStartTime;
-		GetWorld()->GetTimerManager().ClearTimer(CrouchTimerHandle);
-		if (bIsCrouching)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Standing up"));
-			GetCharacterMovement()->MaxWalkSpeed = 500.0f;
-			bIsCrouching = false;
-			PlayerMesh->PlayAnimation(CrouchToStand, false);
-			if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
-		}
+		StopCrouch_Local();
 	}
 	else {
 		StopCrouch_Local();
@@ -525,32 +508,22 @@ void APlayerPawn::StopCrouch_Local()
 		GetCharacterMovement()->MaxWalkSpeed = 500.0f;
 		bIsCrouching = false;
 		PlayerMesh->PlayAnimation(CrouchToStand, false);
-		if (bIsMoving) PlayerMesh->PlayAnimation(WalkForward, true);
+		Multicast_PlayAnimationNonLooping(CrouchToStand);
+		if (bIsMoving) {
+			PlayerMesh->PlayAnimation(WalkForward, true);
+			Multicast_PlayAnimationLooping(WalkForward);
+		}
+		else {
+			PlayerMesh->PlayAnimation(Idle, true);
+			Multicast_PlayAnimationLooping(WalkForward);
+		}
 	}
 }
 
 void APlayerPawn::MoveForward()
 {
 	if (HasAuthority()) {
-		UE_LOG(LogTemp, Warning, TEXT("move forward"));
-		if (!bIsMoving)
-		{
-			bIsMoving = true;
-			if (WalkForward)
-			{
-				if (!bIsCrouching) {
-					PlayerMesh->PlayAnimation(WalkForward, true);
-				}
-				else {
-					PlayerMesh->PlayAnimation(CrouchWalkForward, true);
-				}
-			}
-		}
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, 1); //2nd param is a speed multiplier from -1 to 1
+		MoveForward_Local();
 	}
 	else {
 		MoveForward_Local();
@@ -569,9 +542,11 @@ void APlayerPawn::MoveForward_Local()
 		{
 			if (!bIsCrouching) {
 				PlayerMesh->PlayAnimation(WalkForward, true);
+				Multicast_PlayAnimationLooping(WalkForward);
 			}
 			else {
 				PlayerMesh->PlayAnimation(CrouchWalkForward, true);
+				Multicast_PlayAnimationLooping(CrouchWalkForward);
 			}
 		}
 	}
@@ -591,22 +566,7 @@ void APlayerPawn::Server_MoveForward_Implementation()
 void APlayerPawn::StopMoving()
 {
 	if (HasAuthority()) {
-		if (bIsMoving)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("stopped moving"));
-
-			bIsMoving = false;
-
-			if (Stand)
-			{
-				if (!bIsCrouching) {
-					PlayerMesh->PlayAnimation(Idle, true); // Loop idle animation
-				}
-				else {
-					PlayerMesh->PlayAnimation(CrouchIdle, true);
-				}
-			}
-		}
+		StopMoving_Local();
 	}
 	else {
 		StopMoving_Local();
@@ -626,9 +586,11 @@ void APlayerPawn::StopMoving_Local()
 		{
 			if (!bIsCrouching) {
 				PlayerMesh->PlayAnimation(Idle, true); // Loop idle animation
+				Multicast_PlayAnimationLooping(Idle);
 			}
 			else {
 				PlayerMesh->PlayAnimation(CrouchIdle, true);
+				Multicast_PlayAnimationLooping(CrouchIdle);
 			}
 		}
 	}
@@ -642,25 +604,7 @@ void APlayerPawn::Server_StopMoving_Implementation()
 void APlayerPawn::MoveBackward()
 {
 	if (HasAuthority()) {
-		UE_LOG(LogTemp, Warning, TEXT("move backward"));
-		if (!bIsMoving)
-		{
-			bIsMoving = true;
-			if (WalkBackward)
-			{
-				if (!bIsCrouching) {
-					PlayerMesh->PlayAnimation(WalkBackward, true);
-				}
-				else {
-					PlayerMesh->PlayAnimation(CrouchWalkBackward, true);
-				}
-			}
-		}
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, -1);
+		MoveBackward_Local();
 	}
 	else {
 		MoveBackward_Local();
@@ -678,9 +622,11 @@ void APlayerPawn::MoveBackward_Local()
 		{
 			if (!bIsCrouching) {
 				PlayerMesh->PlayAnimation(WalkBackward, true);
+				Multicast_PlayAnimationLooping(WalkBackward);
 			}
 			else {
 				PlayerMesh->PlayAnimation(CrouchWalkBackward, true);
+				Multicast_PlayAnimationLooping(CrouchWalkBackward);
 			}
 		}
 	}
@@ -699,27 +645,7 @@ void APlayerPawn::Server_MoveBackward_Implementation()
 void APlayerPawn::MoveLeft()
 {
 	if (HasAuthority()) {
-		UE_LOG(LogTemp, Warning, TEXT("left"));
-
-		if (!bIsMoving)
-		{
-			bIsMoving = true;
-			if (WalkForward)
-			{
-				if (!bIsCrouching) {
-					PlayerMesh->PlayAnimation(WalkLeft, true);
-				}
-				else {
-					PlayerMesh->PlayAnimation(CrouchWalkLeft, true);
-				}
-			}
-		}
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// Use the Y-axis for left/right movement
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		AddMovementInput(Direction, -1);
+		MoveLeft_Local();
 	}
 	else {
 		MoveLeft_Local();
@@ -738,9 +664,11 @@ void APlayerPawn::MoveLeft_Local()
 		{
 			if (!bIsCrouching) {
 				PlayerMesh->PlayAnimation(WalkLeft, true);
+				Multicast_PlayAnimationLooping(WalkLeft);
 			}
 			else {
 				PlayerMesh->PlayAnimation(CrouchWalkLeft, true);
+				Multicast_PlayAnimationLooping(CrouchWalkLeft);
 			}
 		}
 	}
@@ -760,26 +688,7 @@ void APlayerPawn::Server_MoveLeft_Implementation()
 void APlayerPawn::MoveRight()
 {
 	if (HasAuthority()) {
-		UE_LOG(LogTemp, Warning, TEXT("right"));
-		if (!bIsMoving)
-		{
-			bIsMoving = true;
-			if (WalkForward)
-			{
-				if (!bIsCrouching) {
-					PlayerMesh->PlayAnimation(WalkRight, true);
-				}
-				else {
-					PlayerMesh->PlayAnimation(CrouchWalkRight, true);
-				}
-			}
-		}
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// Use the Y-axis for left/right movement
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		AddMovementInput(Direction, 1);
+		MoveRight_Local();
 	}
 	else {
 		MoveRight_Local();
@@ -802,9 +711,11 @@ void APlayerPawn::MoveRight_Local()
 		{
 			if (!bIsCrouching) {
 				PlayerMesh->PlayAnimation(WalkRight, true);
+				Multicast_PlayAnimationLooping(WalkRight);
 			}
 			else {
 				PlayerMesh->PlayAnimation(CrouchWalkRight, true);
+				Multicast_PlayAnimationLooping(CrouchWalkRight);
 			}
 		}
 	}
