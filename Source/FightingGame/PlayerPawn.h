@@ -75,6 +75,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	class UInputAction* IA_LookUp;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	class UInputAction* IA_Shoot;
+
+
+	//Combat
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TSubclassOf<class AProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	FVector MuzzleOffset = FVector(100.0f, 0.0f, 50.0f);
+
 
 	//animations
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
@@ -122,14 +133,40 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimSequence* Sprint;
 
-	UPROPERTY(EditAnywhere, Category = "Jumping")
+	UPROPERTY(Replicated, EditAnywhere, Category = "Jumping")
 	float JumpForce = 800.0f; // Jump height
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movement")
 	float WalkSpeed = 500.0f; // Default walking speed
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movement")
 	float SprintSpeed = 1000.0f; // Sprinting speed
+
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movement")
+	float MoveSpeed = 200.0f;
+
+	UPROPERTY(Replicated)
+	bool bIsCrouching = false;
+
+	UPROPERTY(Replicated)
+	bool bIsMoving = false;
+
+	UPROPERTY(Replicated)
+	float CrouchHoldThreshold = 0.2f; // Time (seconds) to determine tap vs hold
+
+	FTimerHandle CrouchTimerHandle;
+
+	UPROPERTY(Replicated)
+	float CrouchStartTime = 0.0f; // Time when crouch button was pressed
+
+	UPROPERTY(Replicated)
+	bool bIsJumping = false;
+
+	UPROPERTY(Replicated)
+	bool bCanDoubleJump = true;
+
+	UPROPERTY(Replicated)
+	bool bIsSprinting = false; // Track if the player is sprinting
 
 
 public:	
@@ -139,27 +176,73 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	void StartJump();
+	void StartJump_Local();
 	void StopJump();
 	void MoveLeft();
+	void MoveLeft_Local();
 	void MoveRight();
+	void MoveRight_Local();
 	void MoveForward();
+	void MoveForward_Local();
 	void MoveBackward();
+	void MoveBackward_Local();
 	void LookUp(const FInputActionValue& Value);
 	void Turn(const FInputActionValue& Value);
 	void StartCrouch();
+	void StartCrouch_Local();
 	void StopCrouch();
+	void StopCrouch_Local();
 	void StartSprint();
+	void StartSprint_Local();
 	void StopSprint();
+	void StopSprint_Local();
 	void StopMoving();
+	void StopMoving_Local();
+	// Function to handle shooting
+	void Shoot();
+	void StopShoot();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
-	bool bIsCrouching = false;
-	bool bIsMoving = false;
-	float CrouchHoldThreshold = 0.2f; // Time (seconds) to determine tap vs hold
-	FTimerHandle CrouchTimerHandle;
-	float CrouchStartTime = 0.0f; // Time when crouch button was pressed
-	bool bIsJumping = false;
-	bool bCanDoubleJump = true;
-	bool bIsSprinting = false; // Track if the player is sprinting
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartJump();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopJump();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartSprint();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopSprint();
+
+	UFUNCTION(Server, Reliable)
+	void Server_MoveLeft();
+
+	UFUNCTION(Server, Reliable)
+	void Server_MoveRight();
+
+	UFUNCTION(Server, Reliable)
+	void Server_MoveForward();
+
+	UFUNCTION(Server, Reliable)
+	void Server_MoveBackward();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StartCrouch();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopCrouch();
+
+	UFUNCTION(Server, Reliable)
+	void Server_StopMoving();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAnimationLooping(UAnimSequence* Anim);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAnimationNonLooping(UAnimSequence* Anim);
 };
