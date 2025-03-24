@@ -12,6 +12,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Public/Projectile.h"
 
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
@@ -54,6 +55,9 @@ APlayerPawn::APlayerPawn()
 	{
 		PlayerMesh->SetSkeletalMesh(MeshAsset.Object);
 	}
+
+	// Assign the C++ class to the TSubclassOf variable
+	ProjectileClass = AProjectile::StaticClass();
 
 	// Camera offset from character
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -121,6 +125,12 @@ APlayerPawn::APlayerPawn()
 	if (IA_LookUp_Finder.Succeeded())
 	{
 		IA_LookUp = IA_LookUp_Finder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Shoot_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Shoot.IA_Shoot'"));
+	if (IA_Shoot_Finder.Succeeded())
+	{
+		IA_Shoot = IA_Shoot_Finder.Object;
 	}
 
 	//Load animations
@@ -214,6 +224,8 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		EnhancedInput->BindAction(IA_Crouch, ETriggerEvent::Completed, this, &APlayerPawn::StopCrouch);
 		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Triggered, this, &APlayerPawn::StartSprint);
 		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &APlayerPawn::StopSprint);
+		EnhancedInput->BindAction(IA_Shoot, ETriggerEvent::Triggered, this, &APlayerPawn::Shoot);
+		EnhancedInput->BindAction(IA_Shoot, ETriggerEvent::Completed, this, &APlayerPawn::StopShoot);
 	}
 
 }
@@ -739,5 +751,48 @@ void APlayerPawn::LookUp(const FInputActionValue& Value)
 	UE_LOG(LogTemp, Warning, TEXT("mousey"));
 	float LookUpValue = Value.Get<float>();
 	AddControllerPitchInput(-LookUpValue/3);
+}
+
+
+void APlayerPawn::Shoot()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Shoot Called!"));
+	}
+
+	if (ProjectileClass)
+	{
+		//Get the camera location & forward direction
+		FVector CameraLocation;
+		FRotator CameraRotation;
+		GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+		//Adjust spawn location slightly in front of the camera
+		FVector MuzzleLocation = CameraLocation + CameraRotation.Vector() * MuzzleOffset.X;
+
+		//Set up spawn parameters
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		SpawnParams.Owner = this;
+
+		//Spawn the projectile
+		AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, MuzzleLocation, CameraRotation, SpawnParams);
+
+		if (Projectile)
+		{
+			Projectile->SetOwner(this);
+		}
+	}
+}
+
+
+
+void APlayerPawn::StopShoot()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Stop Shoot Called!"));
+	}
 }
 
