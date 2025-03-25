@@ -4,6 +4,9 @@
 #include "../Public/TutorialAgent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "GameFramework/Character.h"
 
 //Sets default values
 ATutorialAgent::ATutorialAgent()
@@ -19,16 +22,25 @@ ATutorialAgent::ATutorialAgent()
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.bStartWithTickEnabled = true;
 
-    //Create mesh for block
-    AgentMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AgentMesh"));
-    RootComponent = AgentMesh;  
+    // Set Root Component
+    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 
-    //Set a default mesh for agent: block 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> BlockMesh(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
-    if (BlockMesh.Succeeded()) {
-        UE_LOG(LogTemp, Warning, TEXT("Found block"));
-        AgentMesh->SetStaticMesh(BlockMesh.Object);  // Set the static mesh to the cube shape
-        AgentMesh->SetRelativeScale3D(FVector(1.0f));  // Adjust the scale if necessary
+    // Create and attach mesh
+    AgentMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("AgentMesh"));
+    AgentMesh->SetupAttachment(RootComponent);
+
+    // Load the default Skeletal Mesh
+    static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("/Game/AnimStarterPack/UE4_Mannequin/Mesh/SK_Mannequin.SK_Mannequin"));
+    if (MeshAsset.Succeeded()) {
+        UE_LOG(LogTemp, Warning, TEXT("Found agent mesh"));
+        //Load player mesh
+        AgentMesh->SetSkeletalMesh(MeshAsset.Object);
+
+        //Scale
+        AgentMesh->SetRelativeScale3D(FVector(1.0f));
+    }
+    else {
+        UE_LOG(LogTemp, Error, TEXT("Could not find agent mesh or load Idle Pose! Check asset path."));
     }
 }
 

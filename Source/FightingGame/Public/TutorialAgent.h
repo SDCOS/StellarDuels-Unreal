@@ -30,7 +30,7 @@ public:
 	
 	// Mesh for the agent
 	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* AgentMesh;
+	USkeletalMeshComponent* AgentMesh;
 
 	//Spawn the agent into the tutorial, called when BeginPlay occurs
 	void SpawnTutorialAgent();
