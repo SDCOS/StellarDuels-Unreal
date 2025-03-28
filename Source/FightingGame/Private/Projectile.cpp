@@ -15,10 +15,11 @@ AProjectile::AProjectile()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+
 	// Create sphere collision component
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	RootComponent = CollisionComponent;
-	CollisionComponent->InitSphereRadius(0.1f);
+	CollisionComponent->InitSphereRadius(0.3f);
 	CollisionComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 	CollisionComponent->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 
@@ -37,8 +38,8 @@ AProjectile::AProjectile()
 
 	//Create projectile movement component
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-	ProjectileMovementComponent->InitialSpeed = 5000.0f;
-	ProjectileMovementComponent->MaxSpeed = 5000.0f;
+	ProjectileMovementComponent->InitialSpeed = 1500.0f;
+	//ProjectileMovementComponent->MaxSpeed = 5000.0f;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->bShouldBounce = false;
 	ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
@@ -48,7 +49,7 @@ AProjectile::AProjectile()
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-	this->SetLifeSpan(3.0f);
+	this->SetLifeSpan(5.0f);
 }
 
 // Called every frame
