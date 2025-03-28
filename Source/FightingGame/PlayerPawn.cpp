@@ -753,6 +753,20 @@ void APlayerPawn::LookUp(const FInputActionValue& Value)
 	AddControllerPitchInput(-LookUpValue/3);
 }
 
+FVector APlayerPawn::AimingAt(FVector CameraLocation, FRotator CameraRotation) {
+	GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+	FVector TraceStart = CameraLocation;
+	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * 10000.f); // trace far into the distance
+
+	FHitResult HitResult;
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(FireTrace), true, this);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, TraceParams);
+
+	FVector TargetPoint = bHit ? HitResult.ImpactPoint : TraceEnd;
+	return TargetPoint;
+}
+
 void APlayerPawn::StartShoot()
 {
 	// Start shooting immediately, then repeat every FireRate seconds
@@ -762,10 +776,6 @@ void APlayerPawn::StartShoot()
 
 void APlayerPawn::Shoot()
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Shoot Called!"));
-	}
 
 	if (ProjectileClass)
 	{
@@ -774,9 +784,16 @@ void APlayerPawn::Shoot()
 		FRotator CameraRotation;
 		GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
+		FVector TargetPoint = AimingAt(CameraLocation, CameraRotation);
+
 		//Adjust spawn location slightly in front of the camera
-		float SpawnDistance = 500.0f; // 1 meter ahead
+		float SpawnDistance = 430.0f; // 1 meter ahead
 		FVector MuzzleLocation = CameraLocation + CameraRotation.Vector() * SpawnDistance;
+		MuzzleLocation.Z -= 45;
+		MuzzleLocation.X -= 15;
+
+		FVector ShootDirection = (TargetPoint - MuzzleLocation).GetSafeNormal();
+		FRotator SpawnRotation = ShootDirection.Rotation();
 		//Set up spawn parameters
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -786,7 +803,7 @@ void APlayerPawn::Shoot()
 		//Spawn the projectile
 		APlayerController* PC = Cast<APlayerController>(GetController());
 
-		AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, MuzzleLocation, CameraRotation, SpawnParams);
+		AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, MuzzleLocation, SpawnRotation, SpawnParams);
 		
 		if (Projectile)
 		{
@@ -807,10 +824,6 @@ void APlayerPawn::Shoot()
 
 void APlayerPawn::StopShoot()
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Stop Shoot Called!"));
-	}
 	GetWorldTimerManager().ClearTimer(ShootTimerHandle);
 }
 

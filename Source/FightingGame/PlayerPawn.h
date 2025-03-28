@@ -211,6 +211,7 @@ public:
 	void StartShoot();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
+	FVector AimingAt(FVector CameraLocation, FRotator CameraRotation);
 
 	UFUNCTION(Server, Reliable)
 	void Server_StartJump();
