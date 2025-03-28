@@ -38,4 +38,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void EnterTutorial();
+
+	UFUNCTION(BlueprintCallable)
+	void LoginWithEOS();
 };
