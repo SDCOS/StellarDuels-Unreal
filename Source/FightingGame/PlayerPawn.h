@@ -168,6 +168,10 @@ protected:
 	UPROPERTY(Replicated)
 	bool bIsSprinting = false; // Track if the player is sprinting
 
+	FTimerHandle ShootTimerHandle;
+
+	float FireRate = 0.1f; //seconds between shots
+
 
 public:	
 	// Called every frame
@@ -204,8 +208,10 @@ public:
 	// Function to handle shooting
 	void Shoot();
 	void StopShoot();
+	void StartShoot();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
+	FVector AimingAt(FVector CameraLocation, FRotator CameraRotation);
 
 	UFUNCTION(Server, Reliable)
 	void Server_StartJump();
