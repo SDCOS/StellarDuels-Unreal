@@ -837,35 +837,6 @@ void APlayerPawn::StopShoot()
 }
 
 void APlayerPawn::Server_Shoot_Implementation() {
-	FVector CameraLocation;
-	FRotator CameraRotation;
-	GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
-	FVector TargetPoint = AimingAt(CameraLocation, CameraRotation);
-	float SpawnDistance = 430.0f;
-	FVector MuzzleLocation = CameraLocation + CameraRotation.Vector() * SpawnDistance;
-	MuzzleLocation.Z -= 45;
-	MuzzleLocation.X -= 15;
-	FVector ShootDirection = (TargetPoint - MuzzleLocation).GetSafeNormal();
-	if (ProjectileClass)
-	{
-		FRotator SpawnRotation = ShootDirection.Rotation();
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = Cast<APawn>(this);
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(
-			ProjectileClass,
-			MuzzleLocation,
-			SpawnRotation,
-			SpawnParams
-		);
-
-		if (Projectile)
-		{
-			Projectile->SetOwner(this);
-		}
-	}
+	Shoot();
 }
 
