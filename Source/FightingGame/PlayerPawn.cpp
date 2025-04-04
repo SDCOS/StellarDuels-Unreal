@@ -17,6 +17,7 @@
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
 //FIXME: Loop up and down animations
+//FIXME: replicate shooting
 //FIXME: Jump animation is wack, also add running animations
 //FIXME: Replication (all functions including animations) - - - Jump animation not replicating for some reasion - - actually it looks like it isnt bc you need to hold spacebar for the full animation to play
 //FIXME: In StopMove - make a better transition animation to stand
@@ -770,8 +771,16 @@ FVector APlayerPawn::AimingAt(FVector CameraLocation, FRotator CameraRotation) {
 void APlayerPawn::StartShoot()
 {
 	// Start shooting immediately, then repeat every FireRate seconds
-	Shoot();
-	GetWorldTimerManager().SetTimer(ShootTimerHandle, this, &APlayerPawn::Shoot, FireRate, true);
+	if (HasAuthority()) {
+		Shoot();
+		GetWorldTimerManager().SetTimer(ShootTimerHandle, this, &APlayerPawn::Shoot, FireRate, true);
+	}
+	else {
+		//Shoot locally first
+		Shoot();
+		GetWorldTimerManager().SetTimer(ShootTimerHandle, this, &APlayerPawn::Shoot, FireRate, true);
+		GetWorldTimerManager().SetTimer(ShootTimerHandle, this, &APlayerPawn::Server_Shoot, FireRate, true);
+	}
 }
 
 void APlayerPawn::Shoot()
@@ -825,5 +834,38 @@ void APlayerPawn::Shoot()
 void APlayerPawn::StopShoot()
 {
 	GetWorldTimerManager().ClearTimer(ShootTimerHandle);
+}
+
+void APlayerPawn::Server_Shoot_Implementation() {
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	FVector TargetPoint = AimingAt(CameraLocation, CameraRotation);
+	float SpawnDistance = 430.0f;
+	FVector MuzzleLocation = CameraLocation + CameraRotation.Vector() * SpawnDistance;
+	MuzzleLocation.Z -= 45;
+	MuzzleLocation.X -= 15;
+	FVector ShootDirection = (TargetPoint - MuzzleLocation).GetSafeNormal();
+	if (ProjectileClass)
+	{
+		FRotator SpawnRotation = ShootDirection.Rotation();
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = Cast<APawn>(this);
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(
+			ProjectileClass,
+			MuzzleLocation,
+			SpawnRotation,
+			SpawnParams
+		);
+
+		if (Projectile)
+		{
+			Projectile->SetOwner(this);
+		}
+	}
 }
 

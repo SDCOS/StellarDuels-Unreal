@@ -251,4 +251,7 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayAnimationNonLooping(UAnimSequence* Anim);
+
+	UFUNCTION(Server, Reliable)
+	void Server_Shoot();
 };
