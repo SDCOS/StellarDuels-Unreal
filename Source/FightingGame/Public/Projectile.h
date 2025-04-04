@@ -43,7 +43,7 @@ public:
 
 	// Damage value
 	UPROPERTY(EditAnywhere, Category = "Damage")
-	float Damage = 20.0f;
+	float Damage = 10.0f;
 
 	// Function to handle collisions
 	UFUNCTION()

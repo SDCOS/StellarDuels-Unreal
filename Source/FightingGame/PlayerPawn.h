@@ -170,6 +170,9 @@ protected:
 
 	FTimerHandle ShootTimerHandle;
 
+	UPROPERTY(Replicated)
+	float Health = 100.0f;
+
 	float FireRate = 0.1f; //seconds between shots
 
 
@@ -212,6 +215,13 @@ public:
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
 	FVector AimingAt(FVector CameraLocation, FRotator CameraRotation);
+
+	virtual float TakeDamage(
+		float DamageAmount,
+		FDamageEvent const& DamageEvent,
+		AController* EventInstigator,
+		AActor* DamageCauser
+	) override;
 
 	UFUNCTION(Server, Reliable)
 	void Server_StartJump();

@@ -249,6 +249,29 @@ void APlayerPawn::Multicast_PlayAnimationNonLooping_Implementation(UAnimSequence
 	}
 }
 
+float APlayerPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	// Call the base class - this will reduce health and apply general damage effects
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (ActualDamage > 0.f)
+	{
+		// Apply damage to health
+		Health -= ActualDamage;
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("You've been hit!"));
+
+		// Check if dead
+		if (Health <= 0.f)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, TEXT("You died :("));
+			Health = 100.0;
+		}
+	}
+
+	return ActualDamage;
+}
+
+
 void APlayerPawn::StartSprint()
 {
 	if (HasAuthority()) {
