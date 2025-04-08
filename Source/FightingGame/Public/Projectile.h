@@ -27,17 +27,18 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override; //so all clients can see the projectiles
 
 	// Sphere component for collision
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USphereComponent* CollisionComponent;
 
 	// Sphere mesh for rendering
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components" /*, Replicated*/)
 	UStaticMeshComponent* SphereMesh;
 
 	// Movement component
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components" /*, Replicated*/)
 	UProjectileMovementComponent* ProjectileMovementComponent;
 
 	// Damage value
