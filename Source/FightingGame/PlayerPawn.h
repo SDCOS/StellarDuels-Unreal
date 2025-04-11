@@ -145,6 +145,12 @@ protected:
 	UPROPERTY(Replicated, EditAnywhere, Category = "Movement")
 	float MoveSpeed = 200.0f;
 
+	UPROPERTY(ReplicatedUsing = OnRep_PlayerKills)
+	int PlayerKills = 0;
+
+	UPROPERTY(ReplicatedUsing = OnRep_PlayerDeaths)
+	int PlayerDeaths = 0;
+
 	UPROPERTY(Replicated)
 	bool bIsCrouching = false;
 
@@ -169,6 +175,9 @@ protected:
 	bool bIsSprinting = false; // Track if the player is sprinting
 
 	FTimerHandle ShootTimerHandle;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Health)
+	float Health = 100.0f;
 
 	float FireRate = 0.1f; //seconds between shots
 
@@ -213,6 +222,31 @@ public:
 	void PlayCrouchIdle();
 	FVector AimingAt(FVector CameraLocation, FRotator CameraRotation);
 
+	virtual float TakeDamage(
+		float DamageAmount,
+		FDamageEvent const& DamageEvent,
+		AController* EventInstigator,
+		AActor* DamageCauser
+	) override;
+
+	UFUNCTION(Server, Reliable)
+	void Server_ModifyHealth(float Damage);
+
+	UFUNCTION()
+	void OnRep_Health();
+
+	UFUNCTION(Server, Reliable)
+	void Server_ModifyPlayerKills();
+
+	UFUNCTION()
+	void OnRep_PlayerKills();
+
+	UFUNCTION(Server, Reliable)
+	void Server_ModifyPlayerDeaths();
+
+	UFUNCTION()
+	void OnRep_PlayerDeaths();
+
 	UFUNCTION(Server, Reliable)
 	void Server_StartJump();
 
@@ -251,4 +285,7 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayAnimationNonLooping(UAnimSequence* Anim);
+
+	UFUNCTION(Server, Reliable)
+	void Server_Shoot();
 };
