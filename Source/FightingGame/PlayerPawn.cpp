@@ -13,10 +13,14 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Public/Projectile.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/PlayerStart.h"
+
 
 
 //NOTE: If you need a visual for this, make the blueprint version of this class in the editor. It will show you what everything (including the capsule) looks like
 //FIXME: Loop up and down animations
+//FIXME: replicate shooting
 //FIXME: Jump animation is wack, also add running animations
 //FIXME: Replication (all functions including animations) - - - Jump animation not replicating for some reasion - - actually it looks like it isnt bc you need to hold spacebar for the full animation to play
 //FIXME: In StopMove - make a better transition animation to stand
@@ -26,7 +30,7 @@
 // Sets default values
 APlayerPawn::APlayerPawn()
 {
-
+	bReplicates = true;
 	UE_LOG(LogTemp, Warning, TEXT("Pawn Constructor"));
 
  	// Set this pawn to call Tick() every frame.  Is important for frame-by-frame operations (like calculating fps)
@@ -185,15 +189,84 @@ void APlayerPawn::Tick(float DeltaTime)
 void APlayerPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(APlayerPawn, PlayerKills);
+	DOREPLIFETIME(APlayerPawn, PlayerDeaths);
+	DOREPLIFETIME(APlayerPawn, Health);
+}
 
-	DOREPLIFETIME(APlayerPawn, SprintSpeed);
-	DOREPLIFETIME(APlayerPawn, WalkSpeed);
-	DOREPLIFETIME(APlayerPawn, JumpForce);
-	DOREPLIFETIME(APlayerPawn, bIsCrouching);
-	DOREPLIFETIME(APlayerPawn, bIsMoving);
-	DOREPLIFETIME(APlayerPawn, bIsJumping);
-	DOREPLIFETIME(APlayerPawn, bIsSprinting);
-	DOREPLIFETIME(APlayerPawn, bCanDoubleJump);
+void APlayerPawn::OnRep_Health()
+{
+	//ui
+}
+
+void APlayerPawn::OnRep_PlayerKills()
+{
+	//ui
+}
+
+void APlayerPawn::OnRep_PlayerDeaths()
+{
+	//ui
+}
+
+void APlayerPawn::Server_ModifyHealth_Implementation(float Damage)
+{
+	if (HasAuthority())
+	{
+		Health -= Damage;
+
+		if (Health <= 0.0f)
+		{
+			Health = 100.0f;
+			APlayerController* PC = Cast<APlayerController>(GetController());
+			if (PC && PC->PlayerState)
+			{
+				FString PlayerName = PC->PlayerState->GetPlayerName();
+
+				TArray<AActor*> PlayerStarts;
+				UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
+
+				for (AActor* Start : PlayerStarts)
+				{
+
+					if ((PlayerName == "PlayerA" && Start->ActorHasTag("PlayerA")) ||
+						(PlayerName == "PlayerB" && Start->ActorHasTag("PlayerB")))
+					{
+						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Resetting actor location and rotation"));
+						SetActorLocation(Start->GetActorLocation());
+						SetActorRotation(Start->GetActorRotation());
+						break;
+					}
+				}
+			}
+
+		}
+
+		// OnRep_Health will handle syncing the health back to clients
+	}
+}
+
+
+void APlayerPawn::Server_ModifyPlayerKills_Implementation()
+{
+	if (HasAuthority()) // Always make sure the server has authority before changing replicated variables.
+	{
+		PlayerKills += 1;
+
+		// This will be replicated to all clients
+		// The `OnRep_Health()` function will be triggered on clients.
+	}
+}
+
+void APlayerPawn::Server_ModifyPlayerDeaths_Implementation()
+{
+	if (HasAuthority()) // Always make sure the server has authority before changing replicated variables.
+	{
+		PlayerDeaths += 1;
+
+		// This will be replicated to all clients
+		// The `OnRep_Health()` function will be triggered on clients.
+	}
 }
 
 // Called to bind functionality to input
@@ -235,7 +308,6 @@ void APlayerPawn::Multicast_PlayAnimationLooping_Implementation(UAnimSequence* A
 	if (!IsLocallyControlled()) // Prevents double-playing on the local client
 	{
 		PlayerMesh->PlayAnimation(Anim, true);
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("multicast looping called"));
 	}
 }
 
@@ -244,9 +316,39 @@ void APlayerPawn::Multicast_PlayAnimationNonLooping_Implementation(UAnimSequence
 	if (!IsLocallyControlled()) // Prevents double-playing on the local client
 	{
 		PlayerMesh->PlayAnimation(Anim, true);
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("multicast nonlooping called"));
 	}
 }
+
+float APlayerPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	// Call the base class - this will reduce health and apply general damage effects
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	AActor* OwnerActor = DamageCauser->GetOwner();
+	APlayerPawn* EnemyPlayer = Cast<APlayerPawn>(OwnerActor);
+
+	if (ActualDamage > 0.f)
+	{
+		// Apply damage to health
+		Health -= ActualDamage;
+		Server_ModifyHealth(ActualDamage);
+
+		// Check if dead
+		if (Health <= 0.f) //RESET HEALTH AND KILLS/DEATH over the server * * * * * * 
+		{
+			Health = 100.0;
+			PlayerDeaths += 1;
+			EnemyPlayer->PlayerKills += 1;
+
+			Server_ModifyHealth(ActualDamage);
+			Server_ModifyPlayerDeaths();
+			EnemyPlayer->Server_ModifyPlayerKills();
+		}
+	}
+
+	return ActualDamage;
+}
+
 
 void APlayerPawn::StartSprint()
 {
@@ -277,12 +379,7 @@ void APlayerPawn::StartSprint_Local()
 
 void APlayerPawn::Server_StartSprint_Implementation()
 {
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed; // Increase speed
-
-	if (Sprint)
-	{
-		PlayerMesh->PlayAnimation(Sprint, true);
-	}
+	StartSprint_Local();
 }
 
 void APlayerPawn::StopSprint()
@@ -458,17 +555,7 @@ void APlayerPawn::StartCrouch_Local()
 
 void APlayerPawn::Server_StartCrouch_Implementation()
 {
-	CrouchStartTime = GetWorld()->GetTimeSeconds();
-	UE_LOG(LogTemp, Warning, TEXT("Crouching"));
-	GetCharacterMovement()->MaxWalkSpeed = 200.0f; //Reduce the speed
-	bIsCrouching = true;
-	if (StandtoCrouch)
-	{
-		PlayerMesh->PlayAnimation(StandtoCrouch, false);
-		if (bIsMoving) PlayerMesh->PlayAnimation(CrouchWalkForward, true);
-	}
-
-	GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &APlayerPawn::PlayCrouchIdle, StandtoCrouch->GetPlayLength(), false);
+	StartCrouch_Local();
 }
 
 void APlayerPawn::PlayCrouchIdle() //////////////////////if statement may screw stuff up
@@ -770,8 +857,16 @@ FVector APlayerPawn::AimingAt(FVector CameraLocation, FRotator CameraRotation) {
 void APlayerPawn::StartShoot()
 {
 	// Start shooting immediately, then repeat every FireRate seconds
-	Shoot();
-	GetWorldTimerManager().SetTimer(ShootTimerHandle, this, &APlayerPawn::Shoot, FireRate, true);
+	if (HasAuthority()) {
+		Shoot();
+		GetWorldTimerManager().SetTimer(ShootTimerHandle, this, &APlayerPawn::Shoot, FireRate, true);
+	}
+	else {
+		//Shoot locally first
+		Shoot();
+		GetWorldTimerManager().SetTimer(ShootTimerHandle, this, &APlayerPawn::Shoot, FireRate, true);
+		GetWorldTimerManager().SetTimer(ShootTimerHandle, this, &APlayerPawn::Server_Shoot, FireRate, true);
+	}
 }
 
 void APlayerPawn::Shoot()
@@ -825,5 +920,9 @@ void APlayerPawn::Shoot()
 void APlayerPawn::StopShoot()
 {
 	GetWorldTimerManager().ClearTimer(ShootTimerHandle);
+}
+
+void APlayerPawn::Server_Shoot_Implementation() {
+	Shoot();
 }
 
