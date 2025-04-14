@@ -85,7 +85,7 @@ AActor* AGameMode_Default::ChoosePlayerStart_Implementation(AController* Player)
 
     int32 NumPlayerPawns = PlayerPawns.Num();
 
-    FVector SpawnLocation0(0.f, 0.f, 0.f); // X, Y, Z
+    FVector SpawnLocation0(-14000.f, 0.f, 0.f); // X, Y, Z
     FRotator SpawnRotation0(0.f, 90.f, 0.f); // Pitch, Yaw, Roll
     FTransform SpawnTransform0(SpawnRotation0, SpawnLocation0);
 
@@ -94,7 +94,7 @@ AActor* AGameMode_Default::ChoosePlayerStart_Implementation(AController* Player)
         SpawnTransform0
     );
 
-    FVector SpawnLocation1(200.f, 0.f, 0.f); // X, Y, Z
+    FVector SpawnLocation1(-13000.f, 0.f, 0.f); // X, Y, Z
     FRotator SpawnRotation1(0.f, 90.f, 0.f); // Pitch, Yaw, Roll
     FTransform SpawnTransform1(SpawnRotation1, SpawnLocation1);
 

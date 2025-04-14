@@ -13,6 +13,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Public/Projectile.h"
+#include "HUD_Crosshair.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/PlayerStart.h"
 
@@ -177,12 +178,30 @@ void APlayerPawn::BeginPlay()
 
 	//start stand animation here
 	PlayerMesh->PlayAnimation(Stand, false);
+
+	if (IsLocallyControlled())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("[Host] Pawn is locally controlled"));
+	}
 }
 
 // Called every frame
 void APlayerPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	//are we off the map?
+	TimeSinceLastCheck += DeltaTime;
+	if (TimeSinceLastCheck >= 0.5f)
+	{
+		FVector Location = GetActorLocation();
+		if (Location.Z < -2500.f)
+		{
+			Respawn();
+			Server_ModifyPlayerDeaths();
+		}
+		TimeSinceLastCheck = 0.f;
+	}
 
 }
 
@@ -197,16 +216,52 @@ void APlayerPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 void APlayerPawn::OnRep_Health()
 {
 	//ui
+	if (IsLocallyControlled()) {
+		SetPlayerHealthHUD(Health);
+	}
 }
 
 void APlayerPawn::OnRep_PlayerKills()
 {
-	//ui
+	if (IsLocallyControlled())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Updating HUD with new kill count"));
+		SetPlayerKillsHUD(PlayerKills);
+	}
 }
+
 
 void APlayerPawn::OnRep_PlayerDeaths()
 {
 	//ui
+	if (IsLocallyControlled())
+	{
+		SetPlayerDeathsHUD(PlayerDeaths);
+	}
+}
+
+void APlayerPawn::Respawn() {
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC && PC->PlayerState)
+	{
+		FString PlayerName = PC->PlayerState->GetPlayerName();
+
+		TArray<AActor*> PlayerStarts;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
+
+		for (AActor* Start : PlayerStarts)
+		{
+
+			if ((PlayerName == "PlayerA" && Start->ActorHasTag("PlayerA")) ||
+				(PlayerName == "PlayerB" && Start->ActorHasTag("PlayerB")))
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Resetting actor location and rotation"));
+				SetActorLocation(Start->GetActorLocation());
+				SetActorRotation(Start->GetActorRotation());
+				break;
+			}
+		}
+	}
 }
 
 void APlayerPawn::Server_ModifyHealth_Implementation(float Damage)
@@ -215,57 +270,80 @@ void APlayerPawn::Server_ModifyHealth_Implementation(float Damage)
 	{
 		Health -= Damage;
 
+		if (IsLocallyControlled()) {
+			SetPlayerHealthHUD(Health);
+		}
+
 		if (Health <= 0.0f)
 		{
-			Health = 100.0f;
-			APlayerController* PC = Cast<APlayerController>(GetController());
-			if (PC && PC->PlayerState)
-			{
-				FString PlayerName = PC->PlayerState->GetPlayerName();
-
-				TArray<AActor*> PlayerStarts;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), PlayerStarts);
-
-				for (AActor* Start : PlayerStarts)
-				{
-
-					if ((PlayerName == "PlayerA" && Start->ActorHasTag("PlayerA")) ||
-						(PlayerName == "PlayerB" && Start->ActorHasTag("PlayerB")))
-					{
-						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Resetting actor location and rotation"));
-						SetActorLocation(Start->GetActorLocation());
-						SetActorRotation(Start->GetActorRotation());
-						break;
-					}
-				}
-			}
-
+			Respawn();
 		}
 
 		// OnRep_Health will handle syncing the health back to clients
+		// ui here as well bc client acts as server
 	}
 }
 
 
-void APlayerPawn::Server_ModifyPlayerKills_Implementation()
+void APlayerPawn::Server_ModifyPlayerKills_Implementation(APlayerPawn* EnemyPlayer)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("server player kills"));
 	if (HasAuthority()) // Always make sure the server has authority before changing replicated variables.
 	{
-		PlayerKills += 1;
-
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("server player kills - has authority"));
+		EnemyPlayer->PlayerKills++;
+		// Only needed for listen server host:
+		if (EnemyPlayer->IsLocallyControlled()) // the listen server's player
+		{
+			EnemyPlayer->SetPlayerKillsHUD(EnemyPlayer->PlayerKills);
+		}
 		// This will be replicated to all clients
 		// The `OnRep_Health()` function will be triggered on clients.
+		// ui here as well bc client acts as server
 	}
 }
 
 void APlayerPawn::Server_ModifyPlayerDeaths_Implementation()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("server player deaths"));
 	if (HasAuthority()) // Always make sure the server has authority before changing replicated variables.
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("server player deaths - has authority"));
 		PlayerDeaths += 1;
+		if (IsLocallyControlled()) {
+			SetPlayerDeathsHUD(PlayerDeaths);
+		}
 
 		// This will be replicated to all clients
 		// The `OnRep_Health()` function will be triggered on clients.
+		// ui here as well bc client acts as server
+	}
+}
+
+void APlayerPawn::SetPlayerKillsHUD(int32 kill_num) {
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	AHUD_Crosshair* HUD = Cast<AHUD_Crosshair>(PC->GetHUD());
+	if (HUD)
+	{
+		HUD->SetKillCount(kill_num);
+	}
+}
+
+void APlayerPawn::SetPlayerDeathsHUD(int32 death_num) {
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	AHUD_Crosshair* HUD = Cast<AHUD_Crosshair>(PC->GetHUD());
+	if (HUD)
+	{
+		HUD->SetDeathCount(death_num);
+	}
+}
+
+void APlayerPawn::SetPlayerHealthHUD(int32 health_num) {
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	AHUD_Crosshair* HUD = Cast<AHUD_Crosshair>(PC->GetHUD());
+	if (HUD)
+	{
+		HUD->SetHealthCount(health_num);
 	}
 }
 
@@ -330,19 +408,14 @@ float APlayerPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
 	if (ActualDamage > 0.f)
 	{
 		// Apply damage to health
-		Health -= ActualDamage;
 		Server_ModifyHealth(ActualDamage);
 
 		// Check if dead
 		if (Health <= 0.f) //RESET HEALTH AND KILLS/DEATH over the server * * * * * * 
 		{
-			Health = 100.0;
-			PlayerDeaths += 1;
-			EnemyPlayer->PlayerKills += 1;
-
-			Server_ModifyHealth(ActualDamage);
+			Server_ModifyHealth(-100);
 			Server_ModifyPlayerDeaths();
-			EnemyPlayer->Server_ModifyPlayerKills();
+			Server_ModifyPlayerKills(EnemyPlayer);
 		}
 	}
 
@@ -885,7 +958,6 @@ void APlayerPawn::Shoot()
 		float SpawnDistance = 430.0f; // 1 meter ahead
 		FVector MuzzleLocation = CameraLocation + CameraRotation.Vector() * SpawnDistance;
 		MuzzleLocation.Z -= 45;
-		MuzzleLocation.X -= 15;
 
 		FVector ShootDirection = (TargetPoint - MuzzleLocation).GetSafeNormal();
 		FRotator SpawnRotation = ShootDirection.Rotation();

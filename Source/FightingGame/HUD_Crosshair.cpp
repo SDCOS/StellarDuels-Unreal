@@ -24,12 +24,33 @@ void AHUD_Crosshair::BeginPlay()
     if (HUDWidgetClass)
     {
         // Create the widget
-        HUDWidgetInstance = CreateWidget<UUserWidget>(GetWorld(), HUDWidgetClass);
+        HUDWidgetInstance = CreateWidget<UCrosshairWidget>(GetWorld(), HUDWidgetClass);
         if (HUDWidgetInstance)
         {
             // Add it to the viewport
             HUDWidgetInstance->AddToViewport();
         }
+    }
+}
+
+void AHUD_Crosshair::SetKillCount(int32 NewKills) {
+    if (HUDWidgetInstance)
+    {
+        HUDWidgetInstance->UpdateKills(NewKills);
+    }
+}
+
+void AHUD_Crosshair::SetDeathCount(int32 NewDeaths) {
+    if (HUDWidgetInstance)
+    {
+        HUDWidgetInstance->UpdateDeaths(NewDeaths);
+    }
+}
+
+void AHUD_Crosshair::SetHealthCount(int32 NewHealth) {
+    if (HUDWidgetInstance)
+    {
+        HUDWidgetInstance->UpdateHealth(NewHealth);
     }
 }
 
