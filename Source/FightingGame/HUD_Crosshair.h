@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/TextBlock.h"
+#include "Public/CrosshairWidget.h"
 #include "HUD_Crosshair.generated.h"
 
 /**
@@ -25,5 +27,14 @@ protected:
 	TSubclassOf<UUserWidget> HUDWidgetClass;
 
 	UPROPERTY()
-	UUserWidget* HUDWidgetInstance;
+	UCrosshairWidget* HUDWidgetInstance;
+
+public:
+	void SetKillCount(int32 NewKills);
+
+	void SetDeathCount(int32 NewDeaths);
+
+	void SetHealthCount(int32 NewHealth);
+
+
 };

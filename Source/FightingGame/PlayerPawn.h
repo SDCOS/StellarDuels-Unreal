@@ -181,6 +181,7 @@ protected:
 
 	float FireRate = 0.1f; //seconds between shots
 
+	float TimeSinceLastCheck = 0.0f; //check if player has fallen off map
 
 public:	
 	// Called every frame
@@ -215,12 +216,16 @@ public:
 	void StopMoving();
 	void StopMoving_Local();
 	// Function to handle shooting
+	void Respawn();
 	void Shoot();
 	void StopShoot();
 	void StartShoot();
 	//virtual void Landed(const FHitResult& Hit) override;
 	void PlayCrouchIdle();
 	FVector AimingAt(FVector CameraLocation, FRotator CameraRotation);
+	void SetPlayerKillsHUD(int32 kill_num);
+	void SetPlayerDeathsHUD(int32 death_num);
+	void SetPlayerHealthHUD(int32 health_num);
 
 	virtual float TakeDamage(
 		float DamageAmount,
@@ -236,7 +241,7 @@ public:
 	void OnRep_Health();
 
 	UFUNCTION(Server, Reliable)
-	void Server_ModifyPlayerKills();
+	void Server_ModifyPlayerKills(APlayerPawn* EnemyPlayer);
 
 	UFUNCTION()
 	void OnRep_PlayerKills();
