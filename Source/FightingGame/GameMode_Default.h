@@ -26,5 +26,5 @@ protected:
     // Function to initialize custom game state
     virtual void BeginPlay() override;
     virtual void PostLogin(APlayerController* NewPlayer);
-
+    virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 };
