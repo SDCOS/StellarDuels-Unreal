@@ -707,6 +707,28 @@ void APlayerPawn::MoveForward()
 void APlayerPawn::MoveForward_Local()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move forward"));
+
+	//Get the current time
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+
+	// Check for a double-tap within the threshold.
+	if ((CurrentTime - LastForwardInputTime) <= DoubleTapThreshold)
+	{
+		// Only trigger dash if allowed by cooldown.
+		if (bCanDash)
+		{
+			Dash();
+			// Reset the last input time so that further input is not misinterpreted.
+			LastForwardInputTime = 0.0f;
+			return;
+		}
+	}
+	else
+	{
+		// Update LastForwardInputTime since this is a new tap.
+		LastForwardInputTime = CurrentTime;
+	}
+
 	if (!bIsMoving)
 	{
 		bIsMoving = true;
@@ -998,3 +1020,50 @@ void APlayerPawn::Server_Shoot_Implementation() {
 	Shoot();
 }
 
+void APlayerPawn::Dash()
+{
+	//Debug Message
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("Dash"));
+	}
+
+	// Check if a dash can be executed (i.e. not on cooldown).
+	if (!bCanDash)
+	{
+		// Optionally notify the player that the dash is on cooldown.
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("Dash on Cooldown"));
+		}
+		return;
+	}
+
+	//If it's local, calculate dash velocity and use launch character
+	if (HasAuthority()) {
+		FVector DashVelocity = GetActorForwardVector() * DashForce;
+
+		//Launch the character with the calculated velocity
+		LaunchCharacter(DashVelocity, true, true);
+	}
+
+	//Disable dashing until the cooldown expires.
+	bCanDash = false;
+	GetWorld()->GetTimerManager().SetTimer(
+		DashCooldownTimerHandle,
+		this,
+		&APlayerPawn::ResetDashCooldown,
+		DashCooldown,
+		false
+	);
+}
+
+void APlayerPawn::ResetDashCooldown()
+{
+	//Reset dash
+	bCanDash = true;
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, TEXT("Dash Ready"));
+	}
+}
