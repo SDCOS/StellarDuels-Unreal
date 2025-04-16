@@ -78,6 +78,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	class UInputAction* IA_Shoot;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	class UInputAction* IA_Dash;
+
 
 	//Combat
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
@@ -192,9 +195,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float DashCooldown = 0.5f;
-
-	//Dash detection variable
-	float LastForwardInputTime = 0.0f;
+	
+	//Detection variable
+	float LastForwardPressTime = 0.0f;
 
 	// Dash state & timer
 	bool bCanDash = true;
@@ -233,6 +236,7 @@ public:
 	void StopSprint_Local();
 	void StopMoving();
 	void StopMoving_Local();
+	void HandleDashPress();
 	void Dash();
 	void ResetDashCooldown();
 	// Function to handle shooting

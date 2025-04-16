@@ -138,6 +138,12 @@ APlayerPawn::APlayerPawn()
 		IA_Shoot = IA_Shoot_Finder.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Dash_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Dash.IA_Dash'"));
+	if (IA_Dash_Finder.Succeeded())
+	{
+		IA_Dash = IA_Dash_Finder.Object;
+	}
+
 	//Load animations
 	JumpFromStand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Jump_From_Stand.Jump_From_Stand'"));
 	Stand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Equip_Rifle_Standing.Equip_Rifle_Standing'"));
@@ -377,6 +383,7 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &APlayerPawn::StopSprint);
 		EnhancedInput->BindAction(IA_Shoot, ETriggerEvent::Started, this, &APlayerPawn::StartShoot);
 		EnhancedInput->BindAction(IA_Shoot, ETriggerEvent::Completed, this, &APlayerPawn::StopShoot);
+		EnhancedInput->BindAction(IA_Dash, ETriggerEvent::Started, this, &APlayerPawn::HandleDashPress);
 	}
 
 }
@@ -708,27 +715,6 @@ void APlayerPawn::MoveForward_Local()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move forward"));
 
-	//Get the current time
-	const float CurrentTime = GetWorld()->GetTimeSeconds();
-
-	// Check for a double-tap within the threshold.
-	if ((CurrentTime - LastForwardInputTime) <= DoubleTapThreshold)
-	{
-		// Only trigger dash if allowed by cooldown.
-		if (bCanDash)
-		{
-			Dash();
-			// Reset the last input time so that further input is not misinterpreted.
-			LastForwardInputTime = 0.0f;
-			return;
-		}
-	}
-	else
-	{
-		// Update LastForwardInputTime since this is a new tap.
-		LastForwardInputTime = CurrentTime;
-	}
-
 	if (!bIsMoving)
 	{
 		bIsMoving = true;
@@ -1018,6 +1004,23 @@ void APlayerPawn::StopShoot()
 
 void APlayerPawn::Server_Shoot_Implementation() {
 	Shoot();
+}
+
+void APlayerPawn::HandleDashPress()
+{
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+
+	// If the time difference between the current press and the last press is less than the threshold, trigger a dash.
+	if ((CurrentTime - LastForwardPressTime) <= DoubleTapThreshold)
+	{
+		if (bCanDash)
+		{
+			Dash();
+		}
+	}
+
+	// Update the last press time, regardless of whether a dash was triggered
+	LastForwardPressTime = CurrentTime;
 }
 
 void APlayerPawn::Dash()
