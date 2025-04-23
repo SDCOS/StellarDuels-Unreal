@@ -909,7 +909,7 @@ void APlayerPawn::LookUp(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("mousey"));
 	float LookUpValue = Value.Get<float>();
-	AddControllerPitchInput(-LookUpValue * MouseSensitivityPitch);
+	AddControllerPitchInput(LookUpValue * MouseSensitivityPitch);
 }
 
 FVector APlayerPawn::AimingAt(FVector CameraLocation, FRotator CameraRotation) {
