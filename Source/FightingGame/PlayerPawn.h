@@ -205,6 +205,10 @@ public:
 	void MoveBackward_Local();
 	void LookUp(const FInputActionValue& Value);
 	void Turn(const FInputActionValue& Value);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	float MouseSensitivityPitch = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	float MouseSensitivityYaw = 1.0f;
 	void StartCrouch();
 	void StartCrouch_Local();
 	void StopCrouch();

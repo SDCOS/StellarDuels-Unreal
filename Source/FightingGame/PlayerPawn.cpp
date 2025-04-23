@@ -902,14 +902,14 @@ void APlayerPawn::Turn(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("mousex"));
 	float TurnValue = Value.Get<float>();
-	AddControllerYawInput(TurnValue/3);
+	AddControllerYawInput(TurnValue * MouseSensitivityYaw);
 }
 
 void APlayerPawn::LookUp(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("mousey"));
 	float LookUpValue = Value.Get<float>();
-	AddControllerPitchInput(-LookUpValue/3);
+	AddControllerPitchInput(-LookUpValue * MouseSensitivityPitch);
 }
 
 FVector APlayerPawn::AimingAt(FVector CameraLocation, FRotator CameraRotation) {
