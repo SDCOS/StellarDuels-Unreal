@@ -138,6 +138,12 @@ APlayerPawn::APlayerPawn()
 		IA_Shoot = IA_Shoot_Finder.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> IA_Dash_Finder(TEXT("/Script/EnhancedInput.InputAction'/Game/Enhanced_Input/IA_Dash.IA_Dash'"));
+	if (IA_Dash_Finder.Succeeded())
+	{
+		IA_Dash = IA_Dash_Finder.Object;
+	}
+
 	//Load animations
 	JumpFromStand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Jump_From_Stand.Jump_From_Stand'"));
 	Stand = LoadObject<UAnimSequence>(nullptr, TEXT("/Script/Engine.AnimSequence'/Game/AnimStarterPack/Equip_Rifle_Standing.Equip_Rifle_Standing'"));
@@ -377,6 +383,7 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		EnhancedInput->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &APlayerPawn::StopSprint);
 		EnhancedInput->BindAction(IA_Shoot, ETriggerEvent::Started, this, &APlayerPawn::StartShoot);
 		EnhancedInput->BindAction(IA_Shoot, ETriggerEvent::Completed, this, &APlayerPawn::StopShoot);
+		EnhancedInput->BindAction(IA_Dash, ETriggerEvent::Started, this, &APlayerPawn::HandleDashPress);
 	}
 
 }
@@ -707,6 +714,7 @@ void APlayerPawn::MoveForward()
 void APlayerPawn::MoveForward_Local()
 {
 	UE_LOG(LogTemp, Warning, TEXT("move forward"));
+
 	if (!bIsMoving)
 	{
 		bIsMoving = true;
@@ -998,3 +1006,67 @@ void APlayerPawn::Server_Shoot_Implementation() {
 	Shoot();
 }
 
+void APlayerPawn::HandleDashPress()
+{
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+
+	// If the time difference between the current press and the last press is less than the threshold, trigger a dash.
+	if ((CurrentTime - LastForwardPressTime) <= DoubleTapThreshold)
+	{
+		if (bCanDash)
+		{
+			Dash();
+		}
+	}
+
+	// Update the last press time, regardless of whether a dash was triggered
+	LastForwardPressTime = CurrentTime;
+}
+
+void APlayerPawn::Dash()
+{
+	//Debug Message
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("Dash"));
+	}
+
+	// Check if a dash can be executed (i.e. not on cooldown).
+	if (!bCanDash)
+	{
+		// Optionally notify the player that the dash is on cooldown.
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("Dash on Cooldown"));
+		}
+		return;
+	}
+
+	//If it's local, calculate dash velocity and use launch character
+	if (HasAuthority()) {
+		FVector DashVelocity = GetActorForwardVector() * DashForce;
+
+		//Launch the character with the calculated velocity
+		LaunchCharacter(DashVelocity, true, true);
+	}
+
+	//Disable dashing until the cooldown expires.
+	bCanDash = false;
+	GetWorld()->GetTimerManager().SetTimer(
+		DashCooldownTimerHandle,
+		this,
+		&APlayerPawn::ResetDashCooldown,
+		DashCooldown,
+		false
+	);
+}
+
+void APlayerPawn::ResetDashCooldown()
+{
+	//Reset dash
+	bCanDash = true;
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, TEXT("Dash Ready"));
+	}
+}

@@ -78,6 +78,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	class UInputAction* IA_Shoot;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	class UInputAction* IA_Dash;
+
 
 	//Combat
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
@@ -183,6 +186,24 @@ protected:
 
 	float TimeSinceLastCheck = 0.0f; //check if player has fallen off map
 
+	//Dash parameters
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float DashForce = 4500.0f; 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float DoubleTapThreshold = 0.3f; 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float DashCooldown = 0.5f;
+	
+	//Detection variable
+	float LastForwardPressTime = 0.0f;
+
+	// Dash state & timer
+	bool bCanDash = true;
+	FTimerHandle DashCooldownTimerHandle;
+
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -215,6 +236,9 @@ public:
 	void StopSprint_Local();
 	void StopMoving();
 	void StopMoving_Local();
+	void HandleDashPress();
+	void Dash();
+	void ResetDashCooldown();
 	// Function to handle shooting
 	void Respawn();
 	void Shoot();
